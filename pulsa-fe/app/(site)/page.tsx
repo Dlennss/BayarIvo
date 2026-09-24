@@ -1,15 +1,9 @@
-import { Suspense } from "react";
 import Script from "next/script";
 import { getServerSession } from "next-auth";
 import type { Metadata } from "next";
 import { authOptions } from "@/lib/nextauth";
-import { getCategories } from "@/lib/api.products";
-import type { UserCategoryItem, UserSession } from "@/components/user/types";
-import { UserFavoriteTransactions, UserMonthlyBills, UserRecentActivity } from "@/components/user/UserMainSections";
-import { GuestBottomNav } from "@/components/guest/GuestBottomNav";
-import { GuestCategoryGrid } from "@/components/guest/GuestCategoryGrid";
-import { GuestAdsSection } from "@/components/guest/GuestAdsSection";
-import { GuestAdsCarouselSkeleton } from "@/components/guest/GuestAdsCarouselSkeleton";
+import type { UserSession } from "@/components/user/types";
+import { BayarivoHomeConcept } from "@/components/bayarivo/BayarivoHomeConcept";
 import { CANONICAL_SITE_URL } from "@/lib/seo-articles";
 
 type SessionShape = {
@@ -61,8 +55,14 @@ export const metadata: Metadata = {
 
 export default async function GuestHomePage() {
   const session = (await getServerSession(authOptions)) as SessionShape | null;
-  const categories = (await getCategories()) as UserCategoryItem[];
-  const activeCategories = categories.filter((item) => item.aktif);
+  const categoryNames = [
+    "Pulsa & Data",
+    "Paket Internet",
+    "Token Listrik",
+    "E-Wallet",
+    "Tagihan",
+    "PPOB",
+  ];
 
   const websiteJsonLd = {
     "@context": "https://schema.org",
@@ -78,7 +78,7 @@ export default async function GuestHomePage() {
     "@type": "Organization",
     name: "Bayarivo",
     url: CANONICAL_SITE_URL,
-    logo: `${CANONICAL_SITE_URL}/images/logo-pulsakilat.svg`,
+    logo: `${CANONICAL_SITE_URL}/bayarivo-assets/01_header/logo_symbol.png`,
     image: `${CANONICAL_SITE_URL}/opengraph-image`,
     description: homeDescription,
   };
@@ -89,16 +89,16 @@ export default async function GuestHomePage() {
     name: "Bayarivo",
     url: CANONICAL_SITE_URL,
     description: homeDescription,
-    about: activeCategories.map((item) => item.nama),
+    about: categoryNames,
     mainEntity: {
       "@type": "OfferCatalog",
       name: "Kategori Produk Bayarivo",
-      itemListElement: activeCategories.map((item, index) => ({
+      itemListElement: categoryNames.map((item, index) => ({
         "@type": "ListItem",
         position: index + 1,
         item: {
           "@type": "Thing",
-          name: item.nama,
+          name: item,
         },
       })),
     },
@@ -136,7 +136,7 @@ export default async function GuestHomePage() {
   };
 
   return (
-    <main className="brand-retail-main bg-[#f3f7fa]">
+    <>
       <Script id="homepage-website-jsonld" type="application/ld+json">
         {JSON.stringify(websiteJsonLd)}
       </Script>
@@ -149,17 +149,7 @@ export default async function GuestHomePage() {
       <Script id="homepage-faq-jsonld" type="application/ld+json">
         {JSON.stringify(faqJsonLd)}
       </Script>
-      <div className="space-y-4 px-4 pt-4">
-        <GuestCategoryGrid items={categories} />
-        <Suspense fallback={<GuestAdsCarouselSkeleton />}>
-          <GuestAdsSection />
-        </Suspense>
-        <UserRecentActivity href="/kategori" />
-        <UserFavoriteTransactions href="/kategori" />
-        <UserMonthlyBills href="/listrik/tagihan" />
-      </div>
-
-      <GuestBottomNav isLoggedIn={!!session?.backendToken} />
-    </main>
+      <BayarivoHomeConcept isLoggedIn={!!session?.backendToken} />
+    </>
   );
 }
