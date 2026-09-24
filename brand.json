@@ -1,0 +1,18 @@
+{
+  "name": "Bayarivo",
+  "slug": "bayarivo",
+  "initials": "B",
+  "concept": "Pembayaran tertata, jernih dan profesional",
+  "tagline": "Urus bayar, lebih jelas",
+  "primary": "#126b9a",
+  "dark": "#163d52",
+  "accent": "#f4ce73",
+  "tint": "#f3f7fa",
+  "border": "#dbe5ed",
+  "font": "Arial, sans-serif",
+  "radius": 4,
+  "header": "light",
+  "mark": "receipt",
+  "port": 3104,
+  "backendPort": 8104
+}
