@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pulsa-be
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/bayarivo?sslmode=disable
+      PORT: 8104
+      CORS_ORIGINS: http://localhost:3104,http://127.0.0.1:3104
+      JWT_SECRET: test-jwt-secret
+      ADMIN_TOKEN: test-admin-token
+      PULSA24JAM_BASE_URL: https://api.pulsa24jam.net/v2/trx
+      PULSA24JAM_API_KEY: test-api-key
+      PULSA24JAM_PIN: "000000"
+      PULSA24JAM_PASSWORD: test-password
+      PULSA24JAM_SECRET: test-secret
+      PULSA24JAM_CALLBACK_TOKEN: test-callback-token
+      PULSA24JAM_CALLBACK_IP: 127.0.0.1
+      PULSA24JAM_TIMEOUT: 30s
+      PULSA24JAM_PRODUCT_SYNC_INTERVAL: 15m
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: pulsa-be/go.mod
+          cache-dependency-path: pulsa-be/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Test
+        run: go test ./...
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pulsa-fe
+    env:
+      API_BASE: http://127.0.0.1:8104
+      NEXT_PUBLIC_API_BASE: http://127.0.0.1:8104
+      NEXTAUTH_URL: http://localhost:3104
+      NEXT_PUBLIC_SITE_URL: http://localhost:3104
+      NEXTAUTH_SECRET: test-nextauth-secret
+      AUTH_SECRET: test-auth-secret
+      ADMIN_TOKEN: test-admin-token
+      NEXT_PUBLIC_TURNSTILE_ENABLED: "false"
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: test-turnstile-site-key
+      TURNSTILE_SECRET_KEY: test-turnstile-secret-key
+      GOOGLE_LOGIN_ENABLED: "false"
+      NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED: "false"
+      GOOGLE_CLIENT_ID: test-google-client-id
+      GOOGLE_CLIENT_SECRET: test-google-client-secret
+      NEXT_PUBLIC_GA_ID: ""
+      PULSA24JAM_BASE_URL: https://api.pulsa24jam.net/v2/trx
+      PULSA24JAM_API_KEY: test-api-key
+      PULSA24JAM_PIN: "000000"
+      PULSA24JAM_CALLBACK_TOKEN: test-callback-token
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: pulsa-fe/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
