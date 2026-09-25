@@ -153,11 +153,12 @@ export default async function UserAccountPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-[#f3f7f5] pb-24">
-      <section className="relative overflow-hidden rounded-b-[32px] bg-[linear-gradient(135deg,#052e26_0%,#047857_58%,#84cc16_145%)] px-4 pb-8 pt-7 text-white shadow-[0_20px_44px_rgba(4,120,87,0.24)]">
-        <div className="pointer-events-none absolute -left-14 -top-16 h-40 w-40 rounded-full border border-white/10 bg-white/8" />
-        <div className="pointer-events-none absolute -right-10 top-7 h-32 w-32 rounded-full bg-white/10" />
-        <div className="mx-auto flex w-full max-w-md flex-col items-center text-center">
+    <main className="min-h-screen bg-[#eef7fb] pb-24 text-[#052656]">
+      <section className="relative overflow-hidden rounded-b-[32px] bg-[#045a92] px-4 pb-8 pt-7 text-white shadow-[0_20px_44px_rgba(0,77,136,0.24)]">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,#04395f_0%,#087ec3_58%,#004e83_100%)]" />
+        <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-[linear-gradient(130deg,transparent_0%,rgba(255,255,255,0.12)_100%)]" />
+        <div className="pointer-events-none absolute -right-12 bottom-4 h-28 w-44 rotate-[-18deg] rounded-[30px] border border-white/14" />
+        <div className="relative mx-auto flex w-full max-w-md flex-col items-center text-center">
           <UserProfilePhotoUploader
             name={displayName}
             email={displayEmail}
@@ -167,7 +168,7 @@ export default async function UserAccountPage() {
           />
           <h1 className="mt-4 max-w-full truncate text-lg font-black tracking-tight">{displayName}</h1>
           <p className="mt-0.5 max-w-full truncate text-[11px] font-bold text-white/75">{username}</p>
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-[10px] font-black text-white ring-1 ring-white/15">
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-[10px] font-black text-white ring-1 ring-white/15 backdrop-blur">
             <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.4} />
             Akun Bayarivo aktif
           </div>
@@ -175,20 +176,22 @@ export default async function UserAccountPage() {
       </section>
 
       <div className="mx-auto -mt-4 w-full max-w-md space-y-3.5 px-4">
-        <section className="overflow-hidden rounded-[22px] border border-emerald-950/5 bg-white shadow-[0_16px_36px_rgba(6,78,59,0.08)]">
+        <section className="overflow-hidden rounded-[22px] border border-[#dfeaf4] bg-white shadow-[0_14px_30px_rgba(8,52,100,0.08)]">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
-            <h2 className="text-sm font-black text-slate-950">Informasi Pribadi</h2>
-            <Link href="/user/account/edit" className="text-[10px] font-black text-[#126b9a]">Edit</Link>
+            <h2 className="text-sm font-black text-[#08295a]">Informasi Pribadi</h2>
+            <Link href="/user/account/edit" className="rounded-full bg-[#eef7ff] px-3 py-1 text-[10px] font-black text-[#0875be]">Edit</Link>
           </div>
           <div className="divide-y divide-slate-100">
             {personalItems.map((item) => {
               const Icon = item.icon;
               return (
                 <div key={item.label} className="flex items-center gap-3 px-4 py-3.5">
-                  <Icon className="h-5 w-5 shrink-0 text-[#126b9a]" strokeWidth={1.9} />
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#e8f5ff] text-[#0875be]">
+                    <Icon className="h-5 w-5" strokeWidth={2.1} />
+                  </span>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold text-slate-400">{item.label}</p>
-                    <p className="mt-0.5 truncate text-xs font-black text-slate-950">{item.value}</p>
+                    <p className="text-[10px] font-semibold text-[#7f91ad]">{item.label}</p>
+                    <p className="mt-0.5 truncate text-xs font-black text-[#08295a]">{item.value}</p>
                   </div>
                 </div>
               );
@@ -196,7 +199,7 @@ export default async function UserAccountPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[22px] border border-emerald-950/5 bg-white shadow-[0_16px_36px_rgba(6,78,59,0.08)]">
+        <section className="overflow-hidden rounded-[22px] border border-[#dfeaf4] bg-white shadow-[0_14px_30px_rgba(8,52,100,0.08)]">
           <div className="divide-y divide-slate-100">
             {settingItems.map((item) => {
               const Icon = item.icon;
@@ -204,27 +207,27 @@ export default async function UserAccountPage() {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className="flex items-center gap-3 px-4 py-3.5 transition hover:bg-emerald-50/50"
+                  className="flex items-center gap-3 px-4 py-3.5 transition hover:bg-[#f6fbff]"
                 >
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-[#126b9a]">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#f0f7ff] text-[#0875be]">
                     <Icon className="h-5 w-5" strokeWidth={2.2} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-xs font-black text-slate-950">{item.label}</span>
-                    <span className="mt-0.5 block truncate text-[10px] font-semibold text-slate-400">{item.desc}</span>
+                    <span className="block text-xs font-black text-[#08295a]">{item.label}</span>
+                    <span className="mt-0.5 block truncate text-[10px] font-semibold text-[#6f83a2]">{item.desc}</span>
                   </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-[#8ba0bd]" />
                 </Link>
               );
             })}
           </div>
         </section>
 
-        <section className="rounded-[18px] border border-rose-200 bg-white p-3 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+        <section className="rounded-[18px] border border-rose-200 bg-white p-3 shadow-[0_10px_24px_rgba(8,52,100,0.05)]">
           <UserLogoutButton className="h-12 w-full rounded-2xl border border-rose-200 bg-white text-xs font-black text-rose-600 shadow-none hover:bg-rose-50 hover:text-rose-700" />
         </section>
 
-        <p className="pt-2 text-center text-[10px] font-semibold text-slate-400">Bayarivo versi 1.0.0</p>
+        <p className="pt-2 text-center text-[10px] font-semibold text-[#8ba0bd]">Bayarivo versi 1.0.0</p>
       </div>
 
       <UserBottomNav />
