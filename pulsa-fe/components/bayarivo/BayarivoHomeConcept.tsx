@@ -19,6 +19,8 @@ import {
 type BayarivoHomeConceptProps = {
   userMode?: boolean;
   isLoggedIn?: boolean;
+  displayName?: string | null;
+  balance?: number | null;
 };
 
 type ServiceItem = {
@@ -113,7 +115,11 @@ function BottomNav({
   );
 }
 
-export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: BayarivoHomeConceptProps) {
+function firstName(value?: string | null) {
+  return String(value || "").trim().split(/\s+/).filter(Boolean)[0] || "";
+}
+
+export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, displayName, balance }: BayarivoHomeConceptProps) {
   const homeHref = userMode ? "/user" : "/";
   const categoryHref = userMode ? "/user/kategori" : "/kategori";
   const transactionHref = userMode ? "/user/transaksi" : "/transaksi";
@@ -121,6 +127,14 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: Ba
   const topupHref = appHref(userMode, "/login", "/user/account/topup", isLoggedIn);
   const accountHref = appHref(userMode, "/login", "/user/account", isLoggedIn);
   const transferHref = appHref(userMode, "/login", "/user/saldo/kirim", isLoggedIn);
+  const userFirstName = firstName(displayName);
+  const hasVisibleBalance = isLoggedIn && typeof balance === "number" && Number.isFinite(balance);
+  const balanceText = hasVisibleBalance ? `Rp ${rupiah(Number(balance))}` : "Rp ******";
+  const balanceSubtext = isLoggedIn
+    ? hasVisibleBalance
+      ? "Aktif dan siap bertransaksi"
+      : "Saldo disembunyikan sementara"
+    : "Masuk untuk melihat saldo";
 
   const services: ServiceItem[] = [
     { label: "Pulsa & Data", href: userMode ? "/user/pulsa-data" : "/pulsa-data", Icon: Smartphone, tone: "bg-[#fff0ed] text-[#f16651]" },
@@ -147,7 +161,9 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: Ba
           <div className="relative flex items-start justify-between gap-3">
             <div className="pt-1">
               <p className="text-[15px] font-black text-[#4e6c99]">Halo,</p>
-              <h1 className="mt-1 text-[27px] font-black leading-[1.02] text-[#062657]">Selamat datang</h1>
+              <h1 className="mt-1 text-[27px] font-black leading-[1.02] text-[#062657]">
+                {userFirstName ? `Selamat datang, ${userFirstName}` : "Selamat datang"}
+              </h1>
             </div>
             <div className="flex shrink-0 gap-2">
               <Link href={transactionHref} prefetch={false} aria-label="Notifikasi" className="relative grid h-11 w-11 place-items-center rounded-full bg-white text-[#062657] shadow-[0_10px_24px_rgba(9,42,89,0.12)]">
@@ -169,8 +185,8 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: Ba
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[14px] font-bold text-white/78">Saldo Utama</p>
-                <p className="mt-2 text-[39px] font-black leading-none">Rp {rupiah(250000)}</p>
-                <p className="mt-2 text-[13px] font-semibold text-white/78">Aktif dan siap bertransaksi</p>
+                <p className="mt-2 text-[39px] font-black leading-none">{balanceText}</p>
+                <p className="mt-2 text-[13px] font-semibold text-white/78">{balanceSubtext}</p>
               </div>
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/10 text-white/85 ring-1 ring-white/15 backdrop-blur">
                 <Bell className="h-6 w-6" strokeWidth={2.3} />
