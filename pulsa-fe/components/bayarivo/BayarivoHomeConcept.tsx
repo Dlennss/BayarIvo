@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -21,6 +24,19 @@ type BayarivoHomeConceptProps = {
   isLoggedIn?: boolean;
   displayName?: string | null;
   balance?: number | null;
+};
+
+type ProfileResponse = {
+  ok?: boolean;
+  profile?: {
+    nama?: string | null;
+    saldo?: number | string | null;
+  } | null;
+};
+
+type LiveProfile = {
+  name: string;
+  balance: number | null;
 };
 
 type ServiceItem = {
@@ -120,6 +136,8 @@ function firstName(value?: string | null) {
 }
 
 export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, displayName, balance }: BayarivoHomeConceptProps) {
+  const [liveProfile, setLiveProfile] = useState<LiveProfile | null>(null);
+  const [profileStatus, setProfileStatus] = useState<"idle" | "loaded" | "error">("idle");
   const homeHref = userMode ? "/user" : "/";
   const categoryHref = userMode ? "/user/kategori" : "/kategori";
   const transactionHref = userMode ? "/user/transaksi" : "/transaksi";
@@ -127,13 +145,52 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, disp
   const topupHref = appHref(userMode, "/login", "/user/account/topup", isLoggedIn);
   const accountHref = appHref(userMode, "/login", "/user/account", isLoggedIn);
   const transferHref = appHref(userMode, "/login", "/user/saldo/kirim", isLoggedIn);
-  const userFirstName = firstName(displayName);
-  const hasVisibleBalance = isLoggedIn && typeof balance === "number" && Number.isFinite(balance);
+  const initialBalance = typeof balance === "number" && Number.isFinite(balance) ? balance : null;
+  const profileName = isLoggedIn ? liveProfile?.name || String(displayName || "").trim() : "";
+  const profileBalance = isLoggedIn ? liveProfile?.balance ?? initialBalance : null;
+  const profileLoading = isLoggedIn && profileStatus === "idle" && (!profileName || profileBalance == null);
+  const userFirstName = firstName(profileName);
+  const hasVisibleBalance = isLoggedIn && typeof profileBalance === "number" && Number.isFinite(profileBalance);
   const balanceSubtext = isLoggedIn
     ? hasVisibleBalance
       ? "Aktif dan siap bertransaksi"
-      : "Saldo disembunyikan sementara"
+      : profileLoading
+        ? "Memuat saldo..."
+        : "Saldo belum tersedia"
     : "Masuk untuk melihat saldo";
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    let active = true;
+
+    fetch("/api/me/profile", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as ProfileResponse;
+      })
+      .then((data) => {
+        if (!active) return;
+        if (!data?.ok || !data.profile) {
+          setProfileStatus("error");
+          return;
+        }
+
+        const nextBalance = Number(data.profile.saldo);
+        setLiveProfile({
+          name: String(data.profile.nama || "").trim(),
+          balance: Number.isFinite(nextBalance) ? nextBalance : null,
+        });
+        setProfileStatus("loaded");
+      })
+      .catch(() => {
+        if (active) setProfileStatus("error");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isLoggedIn]);
 
   const services: ServiceItem[] = [
     { label: "Pulsa & Data", href: userMode ? "/user/pulsa-data" : "/pulsa-data", Icon: Smartphone, tone: "bg-[#fff0ed] text-[#f16651]" },
@@ -185,7 +242,7 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, disp
               <div className="min-w-0">
                 <p className="text-[14px] font-bold text-white/78">Saldo Utama</p>
                 {hasVisibleBalance ? (
-                  <p className="mt-2 text-[39px] font-black leading-none">Rp {rupiah(Number(balance))}</p>
+                  <p className="mt-2 text-[39px] font-black leading-none">Rp {rupiah(profileBalance)}</p>
                 ) : null}
                 <p className="mt-2 text-[13px] font-semibold text-white/78">{balanceSubtext}</p>
               </div>

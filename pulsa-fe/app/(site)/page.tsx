@@ -153,7 +153,7 @@ export default async function GuestHomePage() {
       </Script>
       <BayarivoHomeConcept
         isLoggedIn={!!session?.backendToken}
-        displayName={profile?.nama || session?.user?.name || session?.user?.email || null}
+        displayName={profile?.nama || null}
         balance={profile ? Number(profile.saldo || 0) : null}
       />
     </>
