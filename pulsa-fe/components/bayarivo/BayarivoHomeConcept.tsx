@@ -131,6 +131,21 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: Ba
   return (
     <main className="min-h-svh bg-[#eef7fb] text-[#052656]">
       <div className="space-y-4 px-4 pb-4 pt-4">
+        <section className="relative min-h-[128px] overflow-hidden rounded-[24px] bg-[linear-gradient(145deg,#f9fdff_0%,#edf8ff_58%,#fff7d8_100%)] p-5 shadow-[0_16px_34px_rgba(9,42,89,0.10)] ring-1 ring-white">
+          <div className="pointer-events-none absolute -right-14 top-4 h-36 w-40 rotate-12 rounded-[32px] bg-[#ffe9a6]" />
+          <div className="pointer-events-none absolute -right-3 top-0 h-28 w-28 -rotate-12 rounded-[30px] bg-[#dff0ff]" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-16 w-full bg-[linear-gradient(180deg,transparent_0%,rgba(255,255,255,0.64)_100%)]" />
+          <div className="relative flex justify-end gap-2">
+            <Link href={transactionHref} prefetch={false} aria-label="Notifikasi" className="relative grid h-11 w-11 place-items-center rounded-full bg-white text-[#062657] shadow-[0_10px_24px_rgba(9,42,89,0.12)]">
+              <Bell className="h-5 w-5" strokeWidth={2.4} />
+              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#ff3e3e] ring-2 ring-white" />
+            </Link>
+            <Link href={accountHref} prefetch={false} aria-label="Akun" className="grid h-11 w-11 place-items-center rounded-full bg-[#e0effb] text-[#0f4c80] shadow-[0_10px_24px_rgba(9,42,89,0.10)]">
+              <UserRound className="h-6 w-6" fill="currentColor" strokeWidth={2} />
+            </Link>
+          </div>
+        </section>
+
         <section className="relative overflow-hidden rounded-[22px] bg-[#045a92] p-5 text-white shadow-[0_20px_38px_rgba(0,77,136,0.27)]">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,#04395f_0%,#087ec3_58%,#004e83_100%)]" />
           <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-[linear-gradient(130deg,transparent_0%,rgba(255,255,255,0.12)_100%)]" />
