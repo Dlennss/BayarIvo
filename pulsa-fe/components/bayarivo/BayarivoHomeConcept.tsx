@@ -5,15 +5,17 @@ import {
   Bolt,
   Clock3,
   FileText,
+  Gift,
   Grid2X2,
   Home,
   ReceiptText,
   Send,
+  ShieldCheck,
   Smartphone,
+  Sparkles,
   UserRound,
   WalletCards,
   Wifi,
-  Gift,
 } from "lucide-react";
 
 type BayarivoHomeConceptProps = {
@@ -34,18 +36,18 @@ function appHref(userMode: boolean, guestHref: string, userHref: string, isLogge
   return guestHref;
 }
 
-function money(value: number) {
+function rupiah(value: number) {
   return new Intl.NumberFormat("id-ID").format(value);
 }
 
-function SectionTitle({ title, href }: { title: string; href?: string }) {
+function SectionHeader({ title, href }: { title: string; href?: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <h2 className="text-[19px] font-black leading-tight text-[#062657]">{title}</h2>
+      <h2 className="text-[18px] font-black leading-none text-[#062657]">{title}</h2>
       {href ? (
-        <Link href={href} prefetch={false} className="inline-flex items-center gap-1 text-[12px] font-extrabold text-[#006bc8]">
+        <Link href={href} prefetch={false} className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[12px] font-black text-[#006fc4]">
           Lihat Semua
-          <ArrowRight className="h-4 w-4" strokeWidth={2.6} />
+          <ArrowRight className="h-4 w-4" strokeWidth={2.7} />
         </Link>
       ) : null}
     </div>
@@ -56,11 +58,11 @@ function ServiceTile({ item }: { item: ServiceItem }) {
   const { Icon } = item;
 
   return (
-    <Link href={item.href} prefetch={false} className="group min-w-0 text-center">
-      <span className={`mx-auto grid h-[54px] w-[54px] place-items-center rounded-[14px] ${item.tone} shadow-[0_10px_22px_rgba(7,44,92,0.08)] transition group-hover:-translate-y-0.5`}>
+    <Link href={item.href} prefetch={false} className="group min-w-0 rounded-[16px] p-1 text-center transition hover:bg-[#f6fbff]">
+      <span className={`mx-auto grid h-[58px] w-[58px] place-items-center rounded-[17px] ${item.tone} shadow-[0_12px_22px_rgba(7,44,92,0.08)] transition group-hover:-translate-y-0.5`}>
         <Icon className="h-7 w-7" strokeWidth={2.35} />
       </span>
-      <span className="mt-2 block min-h-8 text-[11px] font-extrabold leading-tight text-[#08295a]">{item.label}</span>
+      <span className="mt-2 block min-h-8 text-[11px] font-black leading-tight text-[#08295a]">{item.label}</span>
     </Link>
   );
 }
@@ -76,15 +78,14 @@ function BottomNav({
   balanceHref: string;
   accountHref: string;
 }) {
-  const itemClass = "flex min-w-0 flex-col items-center gap-1 py-1 text-[#7187a9] visited:text-[#7187a9]";
-  const activeClass = "flex min-w-0 flex-col items-center gap-1 py-1 text-[#0075bf] visited:text-[#0075bf]";
+  const itemClass = "flex min-w-0 flex-col items-center gap-1 py-1 text-[#7a8fad] visited:text-[#7a8fad]";
 
   return (
-    <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 border-t border-[#dce8f3] bg-white/95 px-5 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-14px_34px_rgba(9,42,89,0.12)] backdrop-blur-xl md:w-97.5">
+    <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 border-t border-[#dce8f3] bg-white/95 px-5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-14px_34px_rgba(9,42,89,0.12)] backdrop-blur-xl md:w-97.5">
       <div className="grid grid-cols-4">
-        <Link href={homeHref} prefetch={false} className={activeClass}>
-          <span className="grid h-9 min-w-[52px] place-items-center rounded-[12px] bg-[#e8f5ff]">
-            <Home className="h-5 w-5" fill="currentColor" strokeWidth={2.1} />
+        <Link href={homeHref} prefetch={false} className="flex min-w-0 flex-col items-center gap-1 py-1 text-[#0075bf] visited:text-[#0075bf]">
+          <span className="grid h-9 min-w-[58px] place-items-center rounded-[14px] bg-[#e8f5ff] shadow-[inset_0_0_0_1px_rgba(0,117,191,0.06)]">
+            <Home className="h-5 w-5" fill="currentColor" strokeWidth={2.2} />
           </span>
           <span className="text-[11px] font-black leading-none">Beranda</span>
         </Link>
@@ -116,7 +117,7 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: Ba
 
   const services: ServiceItem[] = [
     { label: "Pulsa & Data", href: userMode ? "/user/pulsa-data" : "/pulsa-data", Icon: Smartphone, tone: "bg-[#fff0ed] text-[#f16651]" },
-    { label: "Paket Internet", href: userMode ? "/user/paket-data" : "/paket-data", Icon: Wifi, tone: "bg-[#eaf6ff] text-[#1677d2]" },
+    { label: "Paket Internet", href: userMode ? "/user/paket-data" : "/paket-data", Icon: Wifi, tone: "bg-[#e8f5ff] text-[#1677d2]" },
     { label: "Token Listrik", href: userMode ? "/user/listrik/token" : "/listrik/token", Icon: Bolt, tone: "bg-[#fff5d8] text-[#e39a05]" },
     { label: "E-Wallet", href: userMode ? "/user/ewallet" : "/ewallet", Icon: WalletCards, tone: "bg-[#efe9ff] text-[#6548d9]" },
     { label: "Tagihan", href: userMode ? "/user/listrik/tagihan" : "/listrik/tagihan", Icon: FileText, tone: "bg-[#e6fbf4] text-[#1fad7a]" },
@@ -130,157 +131,164 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: Ba
   ];
 
   return (
-    <main className="min-h-svh bg-[#f5fbff] text-[#052656]">
+    <main className="min-h-svh bg-[#eef7fb] text-[#052656]">
       <div className="space-y-4 px-4 pb-4 pt-4">
-        <section className="relative overflow-hidden rounded-[24px] bg-[#f9fdff] p-1">
-          <div className="pointer-events-none absolute -right-8 top-0 h-32 w-32 rounded-full bg-[#fff2bf]" />
-          <div className="pointer-events-none absolute -right-2 top-3 h-20 w-20 rounded-full bg-[#e5f3ff]" />
-          <div className="relative flex items-start justify-between gap-3 px-1 pb-3">
-            <div className="pt-2">
-              <p className="text-[15px] font-semibold text-[#526f9c]">Halo,</p>
-              <h1 className="text-[24px] font-black leading-tight text-[#062657]">Selamat datang kembali!</h1>
-              <p className="mt-1 max-w-[270px] text-[13px] font-semibold leading-5 text-[#5c76a0]">
-                Semua kebutuhan pembayaran, dalam satu aplikasi.
-              </p>
+        <section className="relative overflow-hidden rounded-[24px] bg-[linear-gradient(145deg,#f9fdff_0%,#edf8ff_58%,#fff7d8_100%)] p-5 shadow-[0_16px_34px_rgba(9,42,89,0.10)] ring-1 ring-white">
+          <div className="pointer-events-none absolute -right-14 top-4 h-36 w-40 rotate-12 rounded-[32px] bg-[#ffe9a6]" />
+          <div className="pointer-events-none absolute -right-3 top-0 h-28 w-28 -rotate-12 rounded-[30px] bg-[#dff0ff]" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-16 w-full bg-[linear-gradient(180deg,transparent_0%,rgba(255,255,255,0.64)_100%)]" />
+
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="max-w-[250px]">
+              <p className="text-[15px] font-black text-[#4e6c99]">Halo,</p>
+              <h1 className="mt-1 text-[25px] font-black leading-[1.08] text-[#062657]">Selamat datang kembali!</h1>
+              <p className="mt-2 text-[13px] font-semibold leading-5 text-[#5c76a0]">Semua kebutuhan pembayaran dalam satu aplikasi yang lebih jelas.</p>
             </div>
             <div className="flex shrink-0 gap-2">
-              <Link href={transactionHref} prefetch={false} aria-label="Notifikasi" className="relative grid h-11 w-11 place-items-center rounded-full bg-white shadow-[0_8px_22px_rgba(9,42,89,0.10)]">
-                <Bell className="h-5 w-5 text-[#062657]" />
-                <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#ff3e3e]" />
+              <Link href={transactionHref} prefetch={false} aria-label="Notifikasi" className="relative grid h-11 w-11 place-items-center rounded-full bg-white text-[#062657] shadow-[0_10px_24px_rgba(9,42,89,0.12)]">
+                <Bell className="h-5 w-5" strokeWidth={2.4} />
+                <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#ff3e3e] ring-2 ring-white" />
               </Link>
-              <Link href={accountHref} prefetch={false} aria-label="Akun" className="grid h-11 w-11 place-items-center rounded-full bg-[#e5f0fb] shadow-[0_8px_22px_rgba(9,42,89,0.08)]">
-                <UserRound className="h-6 w-6 text-[#0f4c80]" fill="currentColor" />
+              <Link href={accountHref} prefetch={false} aria-label="Akun" className="grid h-11 w-11 place-items-center rounded-full bg-[#e0effb] text-[#0f4c80] shadow-[0_10px_24px_rgba(9,42,89,0.10)]">
+                <UserRound className="h-6 w-6" fill="currentColor" strokeWidth={2} />
               </Link>
             </div>
           </div>
+
+          <div className="relative mt-5 grid grid-cols-3 gap-2 rounded-[18px] border border-white/80 bg-white/70 p-2 shadow-[0_10px_24px_rgba(9,42,89,0.08)] backdrop-blur">
+            <span className="flex items-center justify-center gap-1.5 rounded-[13px] bg-white px-2 py-2 text-[11px] font-black text-[#0b5d96]">
+              <ShieldCheck className="h-4 w-4 text-[#27a66d]" />
+              Aman
+            </span>
+            <span className="flex items-center justify-center gap-1.5 rounded-[13px] bg-white px-2 py-2 text-[11px] font-black text-[#0b5d96]">
+              <Sparkles className="h-4 w-4 text-[#e8a408]" />
+              Praktis
+            </span>
+            <span className="flex items-center justify-center gap-1.5 rounded-[13px] bg-white px-2 py-2 text-[11px] font-black text-[#0b5d96]">
+              <Clock3 className="h-4 w-4 text-[#4b80d9]" />
+              Cepat
+            </span>
+          </div>
         </section>
 
-        <section className="relative overflow-hidden rounded-[18px] bg-[#006cad] p-5 text-white shadow-[0_18px_34px_rgba(0,77,136,0.25)]">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,#00497f_0%,#087dc2_55%,#005b98_100%)]" />
-          <div className="pointer-events-none absolute -right-12 top-8 h-40 w-52 rounded-full border border-white/12" />
-          <div className="pointer-events-none absolute -bottom-16 -left-16 h-44 w-56 rounded-full border border-white/10" />
+        <section className="relative overflow-hidden rounded-[22px] bg-[#045a92] p-5 text-white shadow-[0_20px_38px_rgba(0,77,136,0.27)]">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,#04395f_0%,#087ec3_58%,#004e83_100%)]" />
+          <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-[linear-gradient(130deg,transparent_0%,rgba(255,255,255,0.12)_100%)]" />
+          <div className="pointer-events-none absolute -right-12 bottom-4 h-28 w-44 rotate-[-18deg] rounded-[30px] border border-white/14" />
           <div className="relative">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="inline-flex items-center gap-2 text-[15px] font-bold text-white/78">
-                  Saldo Utama
-                </p>
-                <p className="mt-2 text-[38px] font-black leading-none tracking-normal">Rp {money(250000)}</p>
-                <p className="mt-2 text-[14px] font-semibold text-white/78">Aktif dan siap bertransaksi</p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[14px] font-bold text-white/78">Saldo Utama</p>
+                <p className="mt-2 text-[38px] font-black leading-none">Rp {rupiah(250000)}</p>
+                <p className="mt-2 text-[13px] font-semibold text-white/78">Aktif dan siap bertransaksi</p>
               </div>
-              <Link href={topupHref} prefetch={false} className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#ffcf4d] px-5 text-[14px] font-black text-[#062657] shadow-[0_10px_20px_rgba(7,38,88,0.18)]">
+              <Link href={topupHref} prefetch={false} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-[#ffcf4d] px-4 text-[13px] font-black text-[#062657] shadow-[0_10px_20px_rgba(7,38,88,0.20)]">
                 <span className="text-lg leading-none">+</span>
                 Top Up
               </Link>
             </div>
 
-            <div className="my-5 h-px bg-white/30" />
+            <div className="my-5 h-px bg-white/25" />
 
-            <div className="grid grid-cols-3 gap-4">
-              <Link href={topupHref} prefetch={false} className="flex flex-col items-center gap-2">
-                <span className="grid h-[60px] w-[60px] place-items-center rounded-full bg-white text-[#e49b06] shadow-lg">
-                  <WalletCards className="h-7 w-7" strokeWidth={2.5} />
+            <div className="grid grid-cols-3 gap-3">
+              <Link href={topupHref} prefetch={false} className="rounded-[17px] bg-white/10 p-3 text-center ring-1 ring-white/12 backdrop-blur">
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[#e49b06] shadow-lg">
+                  <WalletCards className="h-6 w-6" strokeWidth={2.5} />
                 </span>
-                <span className="text-[13px] font-black">Isi Saldo</span>
+                <span className="mt-2 block text-[12px] font-black">Isi Saldo</span>
               </Link>
-              <Link href={transferHref} prefetch={false} className="flex flex-col items-center gap-2">
-                <span className="grid h-[60px] w-[60px] place-items-center rounded-full bg-white text-[#e49b06] shadow-lg">
-                  <Send className="h-7 w-7" fill="currentColor" strokeWidth={1.8} />
+              <Link href={transferHref} prefetch={false} className="rounded-[17px] bg-white/10 p-3 text-center ring-1 ring-white/12 backdrop-blur">
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[#e49b06] shadow-lg">
+                  <Send className="h-6 w-6" fill="currentColor" strokeWidth={1.7} />
                 </span>
-                <span className="text-[13px] font-black">Transfer</span>
+                <span className="mt-2 block text-[12px] font-black">Transfer</span>
               </Link>
-              <Link href={transactionHref} prefetch={false} className="flex flex-col items-center gap-2">
-                <span className="grid h-[60px] w-[60px] place-items-center rounded-full bg-white text-[#e49b06] shadow-lg">
-                  <ReceiptText className="h-7 w-7" strokeWidth={2.5} />
+              <Link href={transactionHref} prefetch={false} className="rounded-[17px] bg-white/10 p-3 text-center ring-1 ring-white/12 backdrop-blur">
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[#e49b06] shadow-lg">
+                  <ReceiptText className="h-6 w-6" strokeWidth={2.5} />
                 </span>
-                <span className="text-[13px] font-black">Riwayat</span>
+                <span className="mt-2 block text-[12px] font-black">Riwayat</span>
               </Link>
             </div>
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[18px] border border-[#dfeaf4] bg-[linear-gradient(120deg,#ffffff_0%,#eef8ff_52%,#e3f4ff_100%)] p-5 shadow-[0_12px_28px_rgba(8,52,100,0.08)]">
-          <div className="grid grid-cols-[1fr_128px] items-center gap-3">
+        <section className="overflow-hidden rounded-[22px] border border-[#dfeaf4] bg-white p-5 shadow-[0_14px_30px_rgba(8,52,100,0.08)]">
+          <div className="grid grid-cols-[1fr_106px] items-center gap-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#2f89d6]">Pulsa, Data & Pembayaran Digital</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#2f89d6]">Pulsa, Data & Pembayaran</p>
               <h2 className="mt-2 text-[22px] font-black leading-[1.08] text-[#062657]">Semua Kebutuhan Dalam Satu Aplikasi</h2>
-              <p className="mt-2 text-[13px] font-semibold leading-5 text-[#60789d]">Top up, bayar tagihan, dan transaksi harian jadi lebih mudah.</p>
+              <p className="mt-2 text-[13px] font-semibold leading-5 text-[#60789d]">Top up dan bayar tagihan harian jadi lebih mudah.</p>
               <Link href={categoryHref} prefetch={false} className="mt-4 inline-flex h-11 items-center gap-3 rounded-[14px] bg-[#ffcd4a] px-5 text-[14px] font-black text-[#062657] shadow-[0_10px_18px_rgba(225,151,0,0.18)]">
                 Mulai Sekarang
                 <ArrowRight className="h-5 w-5" strokeWidth={2.6} />
               </Link>
             </div>
-            <div className="relative h-[154px]">
-              <div className="absolute left-2 top-5 grid h-16 w-16 -rotate-12 place-items-center rounded-[18px] bg-[#238fe1] text-white shadow-xl">
-                <Smartphone className="h-8 w-8" />
-              </div>
-              <div className="absolute right-7 top-0 grid h-16 w-16 rotate-6 place-items-center rounded-[18px] bg-white text-[#2478cf] shadow-xl">
-                <Wifi className="h-8 w-8" />
-              </div>
-              <div className="absolute bottom-8 left-10 grid h-16 w-16 -rotate-6 place-items-center rounded-[18px] bg-[#32bf83] text-white shadow-xl">
-                <WalletCards className="h-8 w-8" />
-              </div>
-              <div className="absolute bottom-10 right-0 grid h-16 w-16 rotate-12 place-items-center rounded-[18px] bg-[#ffc54c] text-white shadow-xl">
-                <Bolt className="h-8 w-8" fill="currentColor" />
-              </div>
-              <span className="absolute bottom-0 right-2 text-right text-[17px] font-black italic leading-tight text-[#062657]">Praktis<br />Aman<br />Terpercaya</span>
+            <div className="relative h-[146px]">
+              <span className="absolute left-0 top-7 grid h-[60px] w-[60px] -rotate-12 place-items-center rounded-[18px] bg-[#238fe1] text-white shadow-xl">
+                <Smartphone className="h-7 w-7" />
+              </span>
+              <span className="absolute right-1 top-0 grid h-[60px] w-[60px] rotate-6 place-items-center rounded-[18px] bg-[#edf8ff] text-[#2478cf] shadow-xl">
+                <Wifi className="h-7 w-7" />
+              </span>
+              <span className="absolute bottom-5 left-5 grid h-[60px] w-[60px] -rotate-6 place-items-center rounded-[18px] bg-[#32bf83] text-white shadow-xl">
+                <WalletCards className="h-7 w-7" />
+              </span>
+              <span className="absolute bottom-2 right-0 grid h-[60px] w-[60px] rotate-12 place-items-center rounded-[18px] bg-[#ffc54c] text-white shadow-xl">
+                <Bolt className="h-7 w-7" fill="currentColor" />
+              </span>
             </div>
           </div>
         </section>
 
-        <section className="rounded-[18px] border border-[#dfeaf4] bg-white p-4 shadow-[0_12px_28px_rgba(8,52,100,0.08)]">
-          <SectionTitle title="Layanan Favorit" href={categoryHref} />
-          <div className="mt-4 grid grid-cols-6 gap-2">
+        <section className="rounded-[22px] border border-[#dfeaf4] bg-white p-4 shadow-[0_14px_30px_rgba(8,52,100,0.08)]">
+          <SectionHeader title="Layanan Favorit" href={categoryHref} />
+          <div className="mt-4 grid grid-cols-3 gap-x-2 gap-y-3">
             {services.map((item) => (
               <ServiceTile key={item.label} item={item} />
             ))}
           </div>
         </section>
 
-        <section className="rounded-[18px] border border-[#dfeaf4] bg-white p-4 shadow-[0_12px_28px_rgba(8,52,100,0.08)]">
-          <SectionTitle title="Aktivitas Terakhir" href={transactionHref} />
-          <div className="mt-3 divide-y divide-[#e6eef6] rounded-[14px] border border-[#e3edf6] bg-white px-4">
+        <section className="rounded-[22px] border border-[#dfeaf4] bg-white p-4 shadow-[0_14px_30px_rgba(8,52,100,0.08)]">
+          <SectionHeader title="Aktivitas Terakhir" href={transactionHref} />
+          <div className="mt-3 divide-y divide-[#e6eef6] rounded-[17px] border border-[#e3edf6] bg-[#fbfdff] px-3">
             {activities.map(({ Icon, ...item }) => (
-              <Link key={item.title} href={transactionHref} prefetch={false} className="grid grid-cols-[48px_1fr_auto] items-center gap-3 py-3">
-                <span className={`grid h-12 w-12 place-items-center rounded-full ${item.tone}`}>
-                  <Icon className="h-6 w-6" strokeWidth={2.4} />
+              <Link key={item.title} href={transactionHref} prefetch={false} className="grid grid-cols-[46px_1fr_auto] items-center gap-3 py-3">
+                <span className={`grid h-11 w-11 place-items-center rounded-full ${item.tone}`}>
+                  <Icon className="h-[22px] w-[22px]" strokeWidth={2.4} />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-[15px] font-black text-[#062657]">{item.title}</span>
-                  <span className="block truncate text-[13px] font-semibold text-[#60789d]">{item.subtitle}</span>
+                  <span className="block truncate text-[14px] font-black text-[#062657]">{item.title}</span>
+                  <span className="block truncate text-[12px] font-semibold text-[#60789d]">{item.subtitle}</span>
                 </span>
                 <span className="text-right">
-                  <span className="block text-[14px] font-black text-[#062657]">{item.amount}</span>
-                  <span className="block text-[12px] font-semibold text-[#60789d]">{item.time}</span>
+                  <span className="block text-[13px] font-black text-[#062657]">{item.amount}</span>
+                  <span className="block text-[11px] font-semibold text-[#60789d]">{item.time}</span>
                 </span>
               </Link>
             ))}
           </div>
         </section>
 
-        <section className="rounded-[18px] border border-[#f5df9f] bg-[linear-gradient(110deg,#fff8e5_0%,#fff1c7_100%)] p-4 shadow-[0_12px_28px_rgba(145,105,23,0.08)]">
-          <div className="grid grid-cols-[72px_1fr_auto] items-center gap-3">
-            <span className="grid h-[72px] w-[72px] place-items-center rounded-[18px] bg-[#ffcf4d] text-[#075fa7] shadow-[0_12px_24px_rgba(214,144,0,0.20)]">
-              <Gift className="h-10 w-10" strokeWidth={2.4} />
+        <section className="rounded-[22px] border border-[#f5df9f] bg-[linear-gradient(110deg,#fff8e5_0%,#fff1c7_100%)] p-4 shadow-[0_14px_30px_rgba(145,105,23,0.08)]">
+          <div className="grid grid-cols-[62px_1fr_auto] items-center gap-3">
+            <span className="grid h-[62px] w-[62px] place-items-center rounded-[18px] bg-[#ffcf4d] text-[#075fa7] shadow-[0_12px_24px_rgba(214,144,0,0.20)]">
+              <Gift className="h-8 w-8" strokeWidth={2.4} />
             </span>
             <span>
-              <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-[#df8f00]">Promo Spesial</span>
-              <span className="mt-1 block text-[20px] font-black leading-tight text-[#062657]">Cashback hingga <span className="text-[#e99700]">50%</span></span>
-              <span className="mt-1 block text-[13px] font-semibold leading-5 text-[#60789d]">Untuk berbagai transaksi pilihan setiap minggu.</span>
+              <span className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#df8f00]">Promo Spesial</span>
+              <span className="mt-1 block text-[19px] font-black leading-tight text-[#062657]">Cashback hingga <span className="text-[#e99700]">50%</span></span>
+              <span className="mt-1 block text-[12px] font-semibold leading-5 text-[#60789d]">Untuk transaksi pilihan setiap minggu.</span>
             </span>
-            <Link href={categoryHref} prefetch={false} aria-label="Lihat promo" className="grid h-11 w-11 place-items-center rounded-full bg-[#ffcd4a] text-[#062657] shadow-[0_10px_18px_rgba(225,151,0,0.18)]">
+            <Link href={categoryHref} prefetch={false} aria-label="Lihat promo" className="grid h-10 w-10 place-items-center rounded-full bg-[#ffcd4a] text-[#062657] shadow-[0_10px_18px_rgba(225,151,0,0.18)]">
               <ArrowRight className="h-5 w-5" strokeWidth={2.7} />
             </Link>
           </div>
         </section>
       </div>
 
-      <BottomNav
-        homeHref={homeHref}
-        transactionHref={transactionHref}
-        balanceHref={balanceHref}
-        accountHref={accountHref}
-      />
+      <BottomNav homeHref={homeHref} transactionHref={transactionHref} balanceHref={balanceHref} accountHref={accountHref} />
     </main>
   );
 }

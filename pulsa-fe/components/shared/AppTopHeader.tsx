@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Headset, Zap } from "lucide-react";
+import { Headset } from "lucide-react";
 
 type AppTopHeaderProps = {
   isLoggedIn?: boolean;
@@ -16,12 +16,11 @@ export function AppTopHeader({ isLoggedIn = false, userName, saldo, role }: AppT
   void saldo;
 
   return (
-    <header className="brand-app-header sticky top-0 z-30 overflow-hidden bg-[#163d52] px-3 pb-3 pt-2 text-white shadow-[0_16px_34px_rgba(5,46,38,0.22)]">
-      <div className="pointer-events-none absolute -right-10 -top-14 h-32 w-32 rounded-full bg-lime-300/25 blur-2xl" />
-      <div className="pointer-events-none absolute -bottom-10 left-20 h-20 w-40 rotate-[-10deg] bg-emerald-400/15 blur-2xl" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-lime-300/80 to-transparent" />
+    <header className="brand-app-header sticky top-0 z-30 overflow-hidden border-b border-[#f1c75d] bg-white/96 px-4 pb-3 pt-3 text-[#062657] shadow-[0_10px_28px_rgba(8,52,100,0.08)] backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-[linear-gradient(90deg,#f6c64d_0%,#ffe7a4_45%,#f6c64d_100%)]" />
+      <div className="pointer-events-none absolute right-0 top-0 h-full w-24 bg-[linear-gradient(110deg,transparent_0%,#edf7ff_100%)]" />
 
-      <div className="relative flex h-14 items-center justify-between gap-3">
+      <div className="relative flex h-[52px] items-center justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-center">
           <Link
             href={homeHref}
@@ -29,15 +28,15 @@ export function AppTopHeader({ isLoggedIn = false, userName, saldo, role }: AppT
             className="flex min-w-0 items-center gap-2.5"
             aria-label="Bayarivo"
           >
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white shadow-[0_10px_22px_rgba(163,230,53,0.22)] ring-1 ring-lime-200/80">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-[linear-gradient(135deg,#e9fff2_0%,#ffffff_52%,#e8f6ff_100%)] shadow-[0_10px_24px_rgba(5,92,145,0.13)] ring-1 ring-[#d8eaf6]">
               <img src="/brand/icon.svg" alt="" width={40} height={40} className="h-10 w-10" />
             </span>
             <span className="min-w-0">
-              <span className="block text-[22px] font-black italic leading-5 tracking-tight">
+              <span className="block text-[23px] font-black leading-5 tracking-normal">
                 <span className="brand-wordmark">Bayarivo</span>
               </span>
-              <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-lime-100/85">
-                Urus bayar, lebih jelas
+              <span className="mt-1 block text-[9px] font-black uppercase tracking-[0.14em] text-[#4f6d91]">
+                Urus Bayar, Lebih Jelas
               </span>
             </span>
           </Link>
@@ -48,10 +47,10 @@ export function AppTopHeader({ isLoggedIn = false, userName, saldo, role }: AppT
             href="#"
             target="_blank"
             rel="noreferrer"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-lime-100 shadow-sm transition hover:bg-white/18"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-[#d9e6f2] bg-white text-[#062657] shadow-[0_8px_18px_rgba(8,52,100,0.12)] transition hover:bg-[#f5fbff]"
             aria-label="Hubungi bantuan via WhatsApp"
           >
-            <Headset className="h-4 w-4" />
+            <Headset className="h-[18px] w-[18px]" strokeWidth={2.4} />
           </a>
         </div>
       </div>
