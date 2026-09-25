@@ -10,9 +10,7 @@ import {
   Home,
   ReceiptText,
   Send,
-  ShieldCheck,
   Smartphone,
-  Sparkles,
   UserRound,
   WalletCards,
   Wifi,
@@ -133,44 +131,6 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: Ba
   return (
     <main className="min-h-svh bg-[#eef7fb] text-[#052656]">
       <div className="space-y-4 px-4 pb-4 pt-4">
-        <section className="relative overflow-hidden rounded-[24px] bg-[linear-gradient(145deg,#f9fdff_0%,#edf8ff_58%,#fff7d8_100%)] p-5 shadow-[0_16px_34px_rgba(9,42,89,0.10)] ring-1 ring-white">
-          <div className="pointer-events-none absolute -right-14 top-4 h-36 w-40 rotate-12 rounded-[32px] bg-[#ffe9a6]" />
-          <div className="pointer-events-none absolute -right-3 top-0 h-28 w-28 -rotate-12 rounded-[30px] bg-[#dff0ff]" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-16 w-full bg-[linear-gradient(180deg,transparent_0%,rgba(255,255,255,0.64)_100%)]" />
-
-          <div className="relative flex items-start justify-between gap-3">
-            <div className="max-w-[250px]">
-              <p className="text-[15px] font-black text-[#4e6c99]">Halo,</p>
-              <h1 className="mt-1 text-[25px] font-black leading-[1.08] text-[#062657]">Selamat datang kembali!</h1>
-              <p className="mt-2 text-[13px] font-semibold leading-5 text-[#5c76a0]">Semua kebutuhan pembayaran dalam satu aplikasi yang lebih jelas.</p>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <Link href={transactionHref} prefetch={false} aria-label="Notifikasi" className="relative grid h-11 w-11 place-items-center rounded-full bg-white text-[#062657] shadow-[0_10px_24px_rgba(9,42,89,0.12)]">
-                <Bell className="h-5 w-5" strokeWidth={2.4} />
-                <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#ff3e3e] ring-2 ring-white" />
-              </Link>
-              <Link href={accountHref} prefetch={false} aria-label="Akun" className="grid h-11 w-11 place-items-center rounded-full bg-[#e0effb] text-[#0f4c80] shadow-[0_10px_24px_rgba(9,42,89,0.10)]">
-                <UserRound className="h-6 w-6" fill="currentColor" strokeWidth={2} />
-              </Link>
-            </div>
-          </div>
-
-          <div className="relative mt-5 grid grid-cols-3 gap-2 rounded-[18px] border border-white/80 bg-white/70 p-2 shadow-[0_10px_24px_rgba(9,42,89,0.08)] backdrop-blur">
-            <span className="flex items-center justify-center gap-1.5 rounded-[13px] bg-white px-2 py-2 text-[11px] font-black text-[#0b5d96]">
-              <ShieldCheck className="h-4 w-4 text-[#27a66d]" />
-              Aman
-            </span>
-            <span className="flex items-center justify-center gap-1.5 rounded-[13px] bg-white px-2 py-2 text-[11px] font-black text-[#0b5d96]">
-              <Sparkles className="h-4 w-4 text-[#e8a408]" />
-              Praktis
-            </span>
-            <span className="flex items-center justify-center gap-1.5 rounded-[13px] bg-white px-2 py-2 text-[11px] font-black text-[#0b5d96]">
-              <Clock3 className="h-4 w-4 text-[#4b80d9]" />
-              Cepat
-            </span>
-          </div>
-        </section>
-
         <section className="relative overflow-hidden rounded-[22px] bg-[#045a92] p-5 text-white shadow-[0_20px_38px_rgba(0,77,136,0.27)]">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,#04395f_0%,#087ec3_58%,#004e83_100%)]" />
           <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-[linear-gradient(130deg,transparent_0%,rgba(255,255,255,0.12)_100%)]" />
@@ -183,7 +143,7 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: Ba
                 <p className="mt-2 text-[13px] font-semibold text-white/78">Aktif dan siap bertransaksi</p>
               </div>
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/10 text-white/85 ring-1 ring-white/15 backdrop-blur">
-                <ShieldCheck className="h-6 w-6" strokeWidth={2.3} />
+                <Bell className="h-6 w-6" strokeWidth={2.3} />
               </span>
             </div>
 
