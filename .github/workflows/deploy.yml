@@ -82,7 +82,7 @@ jobs:
 
       - name: Build frontend standalone
         env:
-          NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED: "false"
+          NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED: "true"
           NEXT_PUBLIC_SITE_URL: https://bayarivo.com
           NEXTAUTH_URL: https://bayarivo.com
           API_BASE: http://127.0.0.1:8104
