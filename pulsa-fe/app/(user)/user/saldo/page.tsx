@@ -19,7 +19,7 @@ export default async function UserSaldoPage() {
   const role = String(profile?.role || session.user?.role || "").trim().toLowerCase();
 
   return (
-    <main className="min-h-screen bg-[#f3f7fa] px-3 pb-24 pt-3">
+    <main className="min-h-screen bg-[#eef7fb] px-3 pb-24 pt-3 text-[#052656]">
       <div className="mx-auto w-full max-w-md">
         <UserSaldoPageContent
           saldo={Number(profile?.saldo || 0)}
