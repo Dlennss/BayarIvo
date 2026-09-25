@@ -179,35 +179,34 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: Ba
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[14px] font-bold text-white/78">Saldo Utama</p>
-                <p className="mt-2 text-[38px] font-black leading-none">Rp {rupiah(250000)}</p>
+                <p className="mt-2 text-[39px] font-black leading-none">Rp {rupiah(250000)}</p>
                 <p className="mt-2 text-[13px] font-semibold text-white/78">Aktif dan siap bertransaksi</p>
               </div>
-              <Link href={topupHref} prefetch={false} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-[#ffcf4d] px-4 text-[13px] font-black text-[#062657] shadow-[0_10px_20px_rgba(7,38,88,0.20)]">
-                <span className="text-lg leading-none">+</span>
-                Top Up
-              </Link>
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/10 text-white/85 ring-1 ring-white/15 backdrop-blur">
+                <ShieldCheck className="h-6 w-6" strokeWidth={2.3} />
+              </span>
             </div>
 
             <div className="my-5 h-px bg-white/25" />
 
             <div className="grid grid-cols-3 gap-3">
-              <Link href={topupHref} prefetch={false} className="rounded-[17px] bg-white/10 p-3 text-center ring-1 ring-white/12 backdrop-blur">
-                <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[#e49b06] shadow-lg">
-                  <WalletCards className="h-6 w-6" strokeWidth={2.5} />
+              <Link href={topupHref} prefetch={false} className="rounded-[18px] bg-white/10 px-2 py-3 text-center ring-1 ring-white/12 backdrop-blur transition hover:bg-white/15">
+                <span className="mx-auto grid h-[52px] w-[52px] place-items-center rounded-[18px] bg-white text-[#e49b06] shadow-[0_10px_18px_rgba(4,40,70,0.18)]">
+                  <WalletCards className="h-6 w-6" strokeWidth={2.35} />
                 </span>
-                <span className="mt-2 block text-[12px] font-black">Isi Saldo</span>
+                <span className="mt-2 block text-[12px] font-black leading-none">Isi Saldo</span>
               </Link>
-              <Link href={transferHref} prefetch={false} className="rounded-[17px] bg-white/10 p-3 text-center ring-1 ring-white/12 backdrop-blur">
-                <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[#e49b06] shadow-lg">
+              <Link href={transferHref} prefetch={false} className="rounded-[18px] bg-white/10 px-2 py-3 text-center ring-1 ring-white/12 backdrop-blur transition hover:bg-white/15">
+                <span className="mx-auto grid h-[52px] w-[52px] place-items-center rounded-[18px] bg-white text-[#e49b06] shadow-[0_10px_18px_rgba(4,40,70,0.18)]">
                   <Send className="h-6 w-6" fill="currentColor" strokeWidth={1.7} />
                 </span>
-                <span className="mt-2 block text-[12px] font-black">Transfer</span>
+                <span className="mt-2 block text-[12px] font-black leading-none">Transfer</span>
               </Link>
-              <Link href={transactionHref} prefetch={false} className="rounded-[17px] bg-white/10 p-3 text-center ring-1 ring-white/12 backdrop-blur">
-                <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[#e49b06] shadow-lg">
-                  <ReceiptText className="h-6 w-6" strokeWidth={2.5} />
+              <Link href={transactionHref} prefetch={false} className="rounded-[18px] bg-white/10 px-2 py-3 text-center ring-1 ring-white/12 backdrop-blur transition hover:bg-white/15">
+                <span className="mx-auto grid h-[52px] w-[52px] place-items-center rounded-[18px] bg-white text-[#e49b06] shadow-[0_10px_18px_rgba(4,40,70,0.18)]">
+                  <ReceiptText className="h-6 w-6" strokeWidth={2.35} />
                 </span>
-                <span className="mt-2 block text-[12px] font-black">Riwayat</span>
+                <span className="mt-2 block text-[12px] font-black leading-none">Riwayat</span>
               </Link>
             </div>
           </div>
