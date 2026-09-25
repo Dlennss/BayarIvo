@@ -26,8 +26,8 @@ async function proxyProfile(method: "GET" | "PATCH", req?: Request) {
   });
 }
 
-export async function GET() {
-  return proxyProfile("GET");
+export async function GET(req: Request) {
+  return proxyProfile("GET", req);
 }
 
 export async function PATCH(req: Request) {

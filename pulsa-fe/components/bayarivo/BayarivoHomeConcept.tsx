@@ -164,7 +164,10 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, disp
 
     let active = true;
 
-    fetch("/api/me/profile", { cache: "no-store" })
+    const authToken = window.localStorage.getItem("auth_token")?.trim();
+    const headers = authToken ? { Authorization: `Bearer ${authToken}` } : undefined;
+
+    fetch("/api/me/profile", { cache: "no-store", headers })
       .then(async (response) => {
         if (!response.ok) return null;
         return (await response.json()) as ProfileResponse;

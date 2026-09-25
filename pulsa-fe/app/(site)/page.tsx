@@ -1,11 +1,10 @@
 import Script from "next/script";
-import { getServerSession } from "next-auth";
 import type { Metadata } from "next";
-import { authOptions } from "@/lib/nextauth";
 import type { UserSession } from "@/components/user/types";
 import { BayarivoHomeConcept } from "@/components/bayarivo/BayarivoHomeConcept";
 import { CANONICAL_SITE_URL } from "@/lib/seo-articles";
 import { getUserProfile } from "@/lib/api.auth";
+import { getAppServerSession } from "@/lib/server-auth";
 
 type SessionShape = {
   user?: UserSession;
@@ -55,7 +54,7 @@ export const metadata: Metadata = {
 };
 
 export default async function GuestHomePage() {
-  const session = (await getServerSession(authOptions)) as SessionShape | null;
+  const session = (await getAppServerSession()) as SessionShape | null;
   const profile = session?.backendToken ? await getUserProfile(session.backendToken).catch(() => null) : null;
   const categoryNames = [
     "Pulsa & Data",
