@@ -76,27 +76,36 @@ function BottomNav({
   balanceHref: string;
   accountHref: string;
 }) {
-  const itemClass = "flex min-w-0 flex-col items-center gap-1 py-1 text-[#7a8fad] visited:text-[#7a8fad]";
+  const activeItemClass = "flex min-w-0 flex-col items-center gap-1 py-1 text-[#0075bf] visited:text-[#0075bf]";
+  const itemClass = "flex min-w-0 flex-col items-center gap-1 py-1 text-[#8ba0bd] visited:text-[#8ba0bd]";
+  const activeIconClass = "grid h-9 min-w-[58px] place-items-center rounded-[13px] bg-[#eef7ff] text-[#0075bf] shadow-[inset_0_0_0_1px_rgba(0,117,191,0.07)]";
+  const iconClass = "grid h-9 min-w-[58px] place-items-center rounded-[13px] text-[#8ba0bd]";
 
   return (
-    <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 border-t border-[#dce8f3] bg-white/95 px-5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-14px_34px_rgba(9,42,89,0.12)] backdrop-blur-xl md:w-97.5">
+    <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 border-t border-[#dce8f3] bg-white/95 px-5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-14px_34px_rgba(9,42,89,0.10)] backdrop-blur-xl md:w-97.5">
       <div className="grid grid-cols-4">
-        <Link href={homeHref} prefetch={false} className="flex min-w-0 flex-col items-center gap-1 py-1 text-[#0075bf] visited:text-[#0075bf]">
-          <span className="grid h-9 min-w-[58px] place-items-center rounded-[14px] bg-[#e8f5ff] shadow-[inset_0_0_0_1px_rgba(0,117,191,0.06)]">
-            <Home className="h-5 w-5" fill="currentColor" strokeWidth={2.2} />
+        <Link href={homeHref} prefetch={false} className={activeItemClass}>
+          <span className={activeIconClass}>
+            <Home className="h-[21px] w-[21px]" strokeWidth={2.15} />
           </span>
           <span className="text-[11px] font-black leading-none">Beranda</span>
         </Link>
         <Link href={transactionHref} prefetch={false} className={itemClass}>
-          <Clock3 className="h-6 w-6" strokeWidth={2} />
+          <span className={iconClass}>
+            <Clock3 className="h-[21px] w-[21px]" strokeWidth={2.05} />
+          </span>
           <span className="text-[11px] font-bold leading-none">Riwayat</span>
         </Link>
         <Link href={balanceHref} prefetch={false} className={itemClass}>
-          <WalletCards className="h-6 w-6" strokeWidth={2} />
+          <span className={iconClass}>
+            <WalletCards className="h-[21px] w-[21px]" strokeWidth={2.05} />
+          </span>
           <span className="text-[11px] font-bold leading-none">Saldo</span>
         </Link>
         <Link href={accountHref} prefetch={false} className={itemClass}>
-          <UserRound className="h-6 w-6" strokeWidth={2} />
+          <span className={iconClass}>
+            <UserRound className="h-[21px] w-[21px]" strokeWidth={2.05} />
+          </span>
           <span className="text-[11px] font-bold leading-none">Akun</span>
         </Link>
       </div>
