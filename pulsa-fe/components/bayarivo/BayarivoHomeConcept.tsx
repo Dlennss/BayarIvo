@@ -135,14 +135,20 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: Ba
           <div className="pointer-events-none absolute -right-14 top-4 h-36 w-40 rotate-12 rounded-[32px] bg-[#ffe9a6]" />
           <div className="pointer-events-none absolute -right-3 top-0 h-28 w-28 -rotate-12 rounded-[30px] bg-[#dff0ff]" />
           <div className="pointer-events-none absolute bottom-0 left-0 h-16 w-full bg-[linear-gradient(180deg,transparent_0%,rgba(255,255,255,0.64)_100%)]" />
-          <div className="relative flex justify-end gap-2">
-            <Link href={transactionHref} prefetch={false} aria-label="Notifikasi" className="relative grid h-11 w-11 place-items-center rounded-full bg-white text-[#062657] shadow-[0_10px_24px_rgba(9,42,89,0.12)]">
-              <Bell className="h-5 w-5" strokeWidth={2.4} />
-              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#ff3e3e] ring-2 ring-white" />
-            </Link>
-            <Link href={accountHref} prefetch={false} aria-label="Akun" className="grid h-11 w-11 place-items-center rounded-full bg-[#e0effb] text-[#0f4c80] shadow-[0_10px_24px_rgba(9,42,89,0.10)]">
-              <UserRound className="h-6 w-6" fill="currentColor" strokeWidth={2} />
-            </Link>
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="pt-1">
+              <p className="text-[15px] font-black text-[#4e6c99]">Halo,</p>
+              <h1 className="mt-1 text-[27px] font-black leading-[1.02] text-[#062657]">Selamat datang</h1>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Link href={transactionHref} prefetch={false} aria-label="Notifikasi" className="relative grid h-11 w-11 place-items-center rounded-full bg-white text-[#062657] shadow-[0_10px_24px_rgba(9,42,89,0.12)]">
+                <Bell className="h-5 w-5" strokeWidth={2.4} />
+                <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#ff3e3e] ring-2 ring-white" />
+              </Link>
+              <Link href={accountHref} prefetch={false} aria-label="Akun" className="grid h-11 w-11 place-items-center rounded-full bg-[#e0effb] text-[#0f4c80] shadow-[0_10px_24px_rgba(9,42,89,0.10)]">
+                <UserRound className="h-6 w-6" fill="currentColor" strokeWidth={2} />
+              </Link>
+            </div>
           </div>
         </section>
 
