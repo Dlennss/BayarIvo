@@ -147,7 +147,7 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, disp
   const transferHref = appHref(userMode, "/login", "/user/saldo/kirim", isLoggedIn);
   const initialBalance = typeof balance === "number" && Number.isFinite(balance) ? balance : null;
   const profileName = isLoggedIn ? liveProfile?.name || String(displayName || "").trim() : "";
-  const profileBalance = isLoggedIn ? liveProfile?.balance ?? initialBalance : null;
+  const profileBalance = isLoggedIn ? liveProfile?.balance ?? initialBalance ?? 0 : null;
   const profileLoading = isLoggedIn && profileStatus === "idle" && (!profileName || profileBalance == null);
   const userFirstName = firstName(profileName);
   const hasVisibleBalance = isLoggedIn && typeof profileBalance === "number" && Number.isFinite(profileBalance);
