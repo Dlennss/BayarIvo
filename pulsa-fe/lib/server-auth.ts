@@ -11,24 +11,7 @@ export type AppServerSession = {
 
 export const PK_AUTH_COOKIE = "pk_auth_token";
 
-export async function getAppServerSession(): Promise<AppServerSession | null> {
-  const token = (await cookies()).get(PK_AUTH_COOKIE)?.value || "";
-  const claims = decodeJwt(token);
-  const tokenIsActive = Boolean(token && claims && (!claims.exp || claims.exp * 1000 > Date.now()));
-  if (tokenIsActive && claims) {
-    const role = typeof claims.role === "string" ? claims.role : "user";
-    return {
-      backendToken: token,
-      user: {
-        name: "",
-        email: "",
-        role,
-      },
-    };
-  }
-
-  // Login tetap harus dapat dibuka walau konfigurasi NextAuth di server belum lengkap
-  // atau cookie sesi lama sudah tidak lagi dapat dibaca.
+async function getNextAuthBackendSession(): Promise<AppServerSession | null> {
   try {
     const session = (await getServerSession(authOptions)) as AppServerSession | null;
     return session?.backendToken ? session : null;
@@ -36,6 +19,30 @@ export async function getAppServerSession(): Promise<AppServerSession | null> {
     console.error("[auth] gagal membaca sesi NextAuth", error);
     return null;
   }
+}
+
+export async function getAppServerSession(): Promise<AppServerSession | null> {
+  const token = (await cookies()).get(PK_AUTH_COOKIE)?.value || "";
+  const claims = decodeJwt(token);
+  const tokenIsActive = Boolean(token && claims && (!claims.exp || claims.exp * 1000 > Date.now()));
+  if (tokenIsActive && claims) {
+    const nextAuthSession = await getNextAuthBackendSession();
+    const nextAuthUser = nextAuthSession?.user;
+    const role = typeof claims.role === "string" ? claims.role : "user";
+    return {
+      backendToken: token,
+      user: {
+        ...nextAuthUser,
+        name: nextAuthUser?.name || "",
+        email: nextAuthUser?.email || "",
+        role,
+      },
+    };
+  }
+
+  // Login tetap harus dapat dibuka walau konfigurasi NextAuth di server belum lengkap
+  // atau cookie sesi lama sudah tidak lagi dapat dibaca.
+  return getNextAuthBackendSession();
 }
 
 export async function getBackendAuthorization(req?: Request): Promise<string> {

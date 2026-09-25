@@ -19,7 +19,7 @@ export default async function UserAppHomePage() {
       <BayarivoHomeConcept
         userMode
         isLoggedIn={!!session?.backendToken}
-        displayName={profile?.nama || null}
+        displayName={profile?.nama || session?.user?.name || session?.user?.email || null}
         balance={profile ? Number(profile.saldo || 0) : null}
       />
     </>
