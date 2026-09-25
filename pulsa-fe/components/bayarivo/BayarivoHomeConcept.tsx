@@ -129,7 +129,6 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, disp
   const transferHref = appHref(userMode, "/login", "/user/saldo/kirim", isLoggedIn);
   const userFirstName = firstName(displayName);
   const hasVisibleBalance = isLoggedIn && typeof balance === "number" && Number.isFinite(balance);
-  const balanceText = hasVisibleBalance ? `Rp ${rupiah(Number(balance))}` : "Rp ******";
   const balanceSubtext = isLoggedIn
     ? hasVisibleBalance
       ? "Aktif dan siap bertransaksi"
@@ -185,7 +184,9 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, disp
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[14px] font-bold text-white/78">Saldo Utama</p>
-                <p className="mt-2 text-[39px] font-black leading-none">{balanceText}</p>
+                {hasVisibleBalance ? (
+                  <p className="mt-2 text-[39px] font-black leading-none">Rp {rupiah(Number(balance))}</p>
+                ) : null}
                 <p className="mt-2 text-[13px] font-semibold text-white/78">{balanceSubtext}</p>
               </div>
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/10 text-white/85 ring-1 ring-white/15 backdrop-blur">
