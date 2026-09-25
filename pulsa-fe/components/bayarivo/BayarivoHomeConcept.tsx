@@ -193,29 +193,37 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false }: Ba
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[22px] border border-[#dfeaf4] bg-white p-5 shadow-[0_14px_30px_rgba(8,52,100,0.08)]">
-          <div className="grid grid-cols-[1fr_106px] items-center gap-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#2f89d6]">Pulsa, Data & Pembayaran</p>
-              <h2 className="mt-2 text-[22px] font-black leading-[1.08] text-[#062657]">Semua Kebutuhan Dalam Satu Aplikasi</h2>
-              <p className="mt-2 text-[13px] font-semibold leading-5 text-[#60789d]">Top up dan bayar tagihan harian jadi lebih mudah.</p>
-              <Link href={categoryHref} prefetch={false} className="mt-4 inline-flex h-11 items-center gap-3 rounded-[14px] bg-[#ffcd4a] px-5 text-[14px] font-black text-[#062657] shadow-[0_10px_18px_rgba(225,151,0,0.18)]">
+        <section className="relative overflow-hidden rounded-[24px] border border-[#dfeaf4] bg-[linear-gradient(135deg,#ffffff_0%,#f5fbff_48%,#e8f6ff_100%)] p-5 shadow-[0_16px_34px_rgba(8,52,100,0.09)]">
+          <div className="pointer-events-none absolute -right-12 -top-10 h-40 w-40 rounded-full bg-[#fff0b8]" />
+          <div className="pointer-events-none absolute bottom-0 right-2 h-28 w-36 rounded-t-[34px] bg-[#dff1ff]/70" />
+          <div className="relative grid grid-cols-[1fr_118px] items-center gap-4">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1f82ca]">Pembayaran Digital</p>
+              <h2 className="mt-2 max-w-[210px] text-[23px] font-black leading-[1.05] text-[#062657]">
+                Semua kebutuhan dalam satu aplikasi
+              </h2>
+              <p className="mt-2 max-w-[205px] text-[13px] font-semibold leading-5 text-[#60789d]">
+                Top up, bayar tagihan, dan transaksi harian jadi lebih mudah.
+              </p>
+              <Link href={categoryHref} prefetch={false} className="mt-4 inline-flex h-11 items-center gap-3 rounded-[14px] bg-[#ffcd4a] px-5 text-[14px] font-black text-[#062657] shadow-[0_12px_20px_rgba(225,151,0,0.20)] transition hover:-translate-y-0.5">
                 Mulai Sekarang
-                <ArrowRight className="h-5 w-5" strokeWidth={2.6} />
+                <ArrowRight className="h-5 w-5" strokeWidth={2.7} />
               </Link>
             </div>
-            <div className="relative h-[146px]">
-              <span className="absolute left-0 top-7 grid h-[60px] w-[60px] -rotate-12 place-items-center rounded-[18px] bg-[#238fe1] text-white shadow-xl">
-                <Smartphone className="h-7 w-7" />
+
+            <div className="relative h-[156px]">
+              <div className="absolute inset-y-3 left-2 right-0 rounded-full border border-[#9bd4ff]/55" />
+              <span className="absolute left-1 top-9 grid h-[58px] w-[58px] -rotate-10 place-items-center rounded-[19px] bg-[#238fe1] text-white shadow-[0_16px_28px_rgba(35,143,225,0.28)]">
+                <Smartphone className="h-7 w-7" strokeWidth={2.35} />
               </span>
-              <span className="absolute right-1 top-0 grid h-[60px] w-[60px] rotate-6 place-items-center rounded-[18px] bg-[#edf8ff] text-[#2478cf] shadow-xl">
-                <Wifi className="h-7 w-7" />
+              <span className="absolute right-1 top-1 grid h-[58px] w-[58px] rotate-6 place-items-center rounded-[20px] bg-white text-[#2478cf] shadow-[0_16px_28px_rgba(24,98,171,0.16)]">
+                <Wifi className="h-7 w-7" strokeWidth={2.35} />
               </span>
-              <span className="absolute bottom-5 left-5 grid h-[60px] w-[60px] -rotate-6 place-items-center rounded-[18px] bg-[#32bf83] text-white shadow-xl">
-                <WalletCards className="h-7 w-7" />
+              <span className="absolute bottom-6 left-8 grid h-[58px] w-[58px] -rotate-4 place-items-center rounded-[20px] bg-[#32bf83] text-white shadow-[0_16px_28px_rgba(50,191,131,0.26)]">
+                <WalletCards className="h-7 w-7" strokeWidth={2.35} />
               </span>
-              <span className="absolute bottom-2 right-0 grid h-[60px] w-[60px] rotate-12 place-items-center rounded-[18px] bg-[#ffc54c] text-white shadow-xl">
-                <Bolt className="h-7 w-7" fill="currentColor" />
+              <span className="absolute bottom-2 right-0 grid h-[62px] w-[62px] rotate-12 place-items-center rounded-[21px] bg-[#ffc54c] text-white shadow-[0_16px_28px_rgba(255,197,76,0.30)]">
+                <Bolt className="h-8 w-8" fill="currentColor" strokeWidth={1.8} />
               </span>
             </div>
           </div>
