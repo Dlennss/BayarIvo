@@ -77,3 +77,26 @@ func TestPulsa24JamProductsRejectsEmptyOrFailedResponse(t *testing.T) {
 		t.Fatal("expected product request error")
 	}
 }
+
+func TestPulsa24JamPayParsesNestedTransaksiMember(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true,"transaksi_member":{"biaya_perkiraan":101200,"keterangan":"BYH01T0OAPX3XTTB2G/MFADLAN FIRNANDA/100000","provider":"smb","qty_provider":100000,"ref_id":"PKA2","status":2}}`))
+	}))
+	defer server.Close()
+
+	adapter := NewPulsa24JamAdapter(Pulsa24JamConfig{BaseURL: server.URL, APIKey: "api-key", PIN: "1234"})
+	resp, err := adapter.Pay(context.Background(), PayRequest{
+		Command: "PAY",
+		Product: "GOPAY",
+		Dest:    "085771187308",
+		Qty:     100000,
+		RefID:   "PKA2",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.RC != "2" || resp.ProviderRef != "BYH01T0OAPX3XTTB2G/MFADLAN FIRNANDA/100000" || resp.Price != 101200 {
+		t.Fatalf("unexpected response rc=%q ref=%q price=%d", resp.RC, resp.ProviderRef, resp.Price)
+	}
+}

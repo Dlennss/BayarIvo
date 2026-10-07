@@ -60,6 +60,21 @@ func pulsa24JamJSONField(body, key string) string {
 			return strings.TrimSpace(fmt.Sprint(v))
 		}
 	}
+	for _, nestedKey := range []string{"transaksi_member", "transaction", "data"} {
+		rawNested, ok := payload[nestedKey]
+		if !ok {
+			continue
+		}
+		nested, ok := rawNested.(map[string]any)
+		if !ok {
+			continue
+		}
+		for k, v := range nested {
+			if strings.EqualFold(strings.TrimSpace(k), key) {
+				return strings.TrimSpace(fmt.Sprint(v))
+			}
+		}
+	}
 	return ""
 }
 

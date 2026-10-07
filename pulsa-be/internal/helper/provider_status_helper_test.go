@@ -136,6 +136,11 @@ func TestProviderResponseStateOfPulsa24Jam(t *testing.T) {
 			want: ProviderResponseSuccess,
 		},
 		{
+			name: "nested transaction status two is success",
+			msg:  `{"ok":true,"transaksi_member":{"biaya_perkiraan":101200,"keterangan":"BYH01T0OAPX3XTTB2G/MFADLAN FIRNANDA/100000","provider":"smb","qty_provider":100000,"ref_id":"PKA2","status":2}}`,
+			want: ProviderResponseSuccess,
+		},
+		{
 			name: "status three is failed",
 			msg:  `{"ok":true,"refid":"PKA29","status":3,"message":"Nomor tujuan salah"}`,
 			want: ProviderResponseFailed,

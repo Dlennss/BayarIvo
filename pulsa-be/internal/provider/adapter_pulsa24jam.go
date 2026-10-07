@@ -93,6 +93,17 @@ type pulsa24JamPayResponse struct {
 	GrossAmount   int64               `json:"gross_amount"`
 	ExpiredAt     *time.Time          `json:"expired_at"`
 	Actions       []map[string]string `json:"actions"`
+	TransaksiMember *struct {
+		ID              int64  `json:"id"`
+		RefID           string `json:"ref_id"`
+		Status          any    `json:"status"`
+		Keterangan      string `json:"keterangan"`
+		Provider        string `json:"provider"`
+		QtyProvider     int64  `json:"qty_provider"`
+		BiayaPerkiraan  int64  `json:"biaya_perkiraan"`
+		FeeMemberRp     int64  `json:"fee_member_rp"`
+		ChargeReceiver  bool   `json:"charge_receiver_applied"`
+	} `json:"transaksi_member"`
 }
 
 type Pulsa24JamDepositQRISResponse struct {
@@ -351,6 +362,16 @@ func (a *Pulsa24JamAdapter) Pay(ctx context.Context, req PayRequest) (*PayRespon
 	price := out.Price
 	if price <= 0 {
 		price = out.Harga
+	}
+	if out.TransaksiMember != nil {
+		nestedStatus := strings.TrimSpace(fmt.Sprint(out.TransaksiMember.Status))
+		rc = firstNonEmpty(rc, nestedStatus)
+		refID = firstNonEmpty(out.TransaksiMember.RefID, refID)
+		providerRef = firstNonEmpty(out.ProviderRef, out.SN, out.TransaksiMember.Keterangan, refID)
+		message = firstNonEmpty(out.Message, out.Msg, out.Keterangan, out.TransaksiMember.Keterangan, out.Status, body)
+		if price <= 0 {
+			price = out.TransaksiMember.BiayaPerkiraan
+		}
 	}
 
 	return &PayResponse{
