@@ -1,3 +1,5 @@
+import { GENERATED_BRAND_LOGO_SLUGS } from "@/lib/generated-brand-logo-slugs";
+
 export type BrandLogoMeta = {
   src: string;
   alt: string;
@@ -387,8 +389,25 @@ function normalizeBrandName(name: string) {
     .replace(/\s+/g, " ");
 }
 
+function brandLogoSlug(name: string) {
+  return normalizeBrandName(name)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export function getBrandLogo(name: string): BrandLogoMeta | null {
   const key = normalizeBrandName(name);
   const withoutBankPrefix = key.replace(/^bank\s+/, "");
-  return BRAND_LOGOS[key] ?? BRAND_LOGOS[withoutBankPrefix] ?? null;
+  const mapped = BRAND_LOGOS[key] ?? BRAND_LOGOS[withoutBankPrefix];
+  if (mapped) return mapped;
+
+  const candidates = [brandLogoSlug(key), brandLogoSlug(withoutBankPrefix)].filter(Boolean);
+  const generatedSlug = candidates.find((slug) => GENERATED_BRAND_LOGO_SLUGS.has(slug));
+  if (!generatedSlug) return null;
+
+  return {
+    src: `/yuscom-display-brand-logos-generated/${generatedSlug}.svg`,
+    alt: `Logo ${name}`,
+    sourcePage: "local:/public/yuscom-display-brand-logos-generated",
+  };
 }
