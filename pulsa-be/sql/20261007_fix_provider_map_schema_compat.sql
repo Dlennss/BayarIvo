@@ -1,0 +1,6 @@
+ALTER TABLE public.produk
+  ADD COLUMN IF NOT EXISTS jam_buka TIME NOT NULL DEFAULT '00:31',
+  ADD COLUMN IF NOT EXISTS jam_tutup TIME NOT NULL DEFAULT '23:29';
+
+ALTER TABLE public.produk_provider_map
+  ADD COLUMN IF NOT EXISTS special_code TEXT NULL;
