@@ -319,18 +319,38 @@ func parsePulsa24JamCallback(raw string, q url.Values, payload map[string]any) p
 			}
 		}
 	}
-	price := parsePulsa24JamInt(get("price", "harga", "amount", "nominal"))
-	balance := parsePulsa24JamInt(get("balance", "saldo", "saldo_terakhir"))
-	status := strings.ToLower(strings.TrimSpace(get("status")))
-	msg := firstText(get("msg"), get("message"), get("keterangan"), status)
-	rc := firstText(get("rc"), get("code"), status)
+	getNested := func(parent string, keys ...string) string {
+		rawNested, ok := payload[parent]
+		if !ok {
+			return ""
+		}
+		nested, ok := rawNested.(map[string]any)
+		if !ok {
+			return ""
+		}
+		for _, key := range keys {
+			for k, rawValue := range nested {
+				if strings.EqualFold(strings.TrimSpace(k), key) {
+					if v := strings.TrimSpace(fmt.Sprint(rawValue)); v != "" && v != "<nil>" {
+						return v
+					}
+				}
+			}
+		}
+		return ""
+	}
+	price := parsePulsa24JamInt(firstText(get("price", "harga", "amount", "nominal"), getNested("trx", "biaya_aktual", "harga", "price", "amount"), getNested("transaksi_member", "biaya_perkiraan", "harga", "price", "amount")))
+	balance := parsePulsa24JamInt(firstText(get("balance", "saldo", "saldo_terakhir"), getNested("trx", "member_balance", "balance", "saldo"), getNested("transaksi_member", "member_balance", "balance", "saldo")))
+	status := strings.ToLower(strings.TrimSpace(firstText(get("status"), getNested("trx", "status"), getNested("transaksi_member", "status"))))
+	msg := firstText(get("msg"), get("message"), get("keterangan"), getNested("trx", "message", "keterangan"), getNested("transaksi_member", "message", "keterangan"), status)
+	rc := firstText(get("rc"), get("code"), getNested("trx", "rc", "code"), getNested("transaksi_member", "rc", "code"), status)
 	return pulsa24JamCallbackData{
-		refid:       firstText(get("refid"), get("ref_id"), get("reffid")),
+		refid:       firstText(get("refid"), get("ref_id"), get("reffid"), getNested("trx", "refid", "ref_id", "reffid"), getNested("transaksi_member", "refid", "ref_id", "reffid")),
 		status:      status,
 		rc:          rc,
 		msg:         msg,
-		sn:          get("sn"),
-		providerRef: firstText(get("provider_ref"), get("noref"), get("no_referensi")),
+		sn:          firstText(get("sn"), getNested("trx", "sn")),
+		providerRef: firstText(get("provider_ref"), get("noref"), get("no_referensi"), getNested("trx", "provider_ref", "noref", "no_referensi"), getNested("transaksi_member", "provider_ref", "noref", "no_referensi")),
 		price:       price,
 		balance:     balance,
 		payload:     payload,
