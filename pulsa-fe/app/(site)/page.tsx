@@ -1,10 +1,11 @@
 import Script from "next/script";
 import type { Metadata } from "next";
-import type { UserSession } from "@/components/user/types";
+import type { UserAppOrder, UserSession } from "@/components/user/types";
 import { BayarivoHomeConcept } from "@/components/bayarivo/BayarivoHomeConcept";
 import { CANONICAL_SITE_URL } from "@/lib/seo-articles";
 import { getUserProfile } from "@/lib/api.auth";
 import { getAppServerSession } from "@/lib/server-auth";
+import { getUserOrders } from "@/lib/api.transactions";
 
 type SessionShape = {
   user?: UserSession;
@@ -56,6 +57,9 @@ export const metadata: Metadata = {
 export default async function GuestHomePage() {
   const session = (await getAppServerSession()) as SessionShape | null;
   const profile = session?.backendToken ? await getUserProfile(session.backendToken).catch(() => null) : null;
+  const recentOrders = session?.backendToken
+    ? (((await getUserOrders(session.backendToken, undefined, 3, 0).catch(() => [])) as UserAppOrder[]) || [])
+    : [];
   const categoryNames = [
     "Pulsa & Data",
     "Paket Internet",
@@ -154,6 +158,7 @@ export default async function GuestHomePage() {
         isLoggedIn={!!session?.backendToken}
         displayName={profile?.nama || session?.user?.name || session?.user?.email || null}
         balance={profile ? Number(profile.saldo || 0) : null}
+        recentOrders={recentOrders}
       />
     </>
   );

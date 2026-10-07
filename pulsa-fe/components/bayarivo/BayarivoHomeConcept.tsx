@@ -18,12 +18,14 @@ import {
   WalletCards,
   Wifi,
 } from "lucide-react";
+import type { UserAppOrder } from "@/components/user/types";
 
 type BayarivoHomeConceptProps = {
   userMode?: boolean;
   isLoggedIn?: boolean;
   displayName?: string | null;
   balance?: number | null;
+  recentOrders?: UserAppOrder[];
 };
 
 type ProfileResponse = {
@@ -135,7 +137,36 @@ function firstName(value?: string | null) {
   return String(value || "").trim().split(/\s+/).filter(Boolean)[0] || "";
 }
 
-export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, displayName, balance }: BayarivoHomeConceptProps) {
+function orderIcon(productName: string) {
+  const value = productName.toLowerCase();
+  if (value.includes("token") || value.includes("pln") || value.includes("listrik")) return Bolt;
+  if (value.includes("wallet") || value.includes("dana") || value.includes("ovo") || value.includes("gopay") || value.includes("shopeepay")) return WalletCards;
+  if (value.includes("data") || value.includes("internet") || value.includes("wifi")) return Wifi;
+  return Smartphone;
+}
+
+function orderTone(productName: string) {
+  const value = productName.toLowerCase();
+  if (value.includes("token") || value.includes("pln") || value.includes("listrik")) return "bg-[#fff5d8] text-[#e39a05]";
+  if (value.includes("wallet") || value.includes("dana") || value.includes("ovo") || value.includes("gopay") || value.includes("shopeepay")) return "bg-[#efe9ff] text-[#6548d9]";
+  if (value.includes("data") || value.includes("internet") || value.includes("wifi")) return "bg-[#e8f5ff] text-[#1677d2]";
+  return "bg-[#fff0ed] text-[#f16651]";
+}
+
+function formatOrderTime(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, displayName, balance, recentOrders = [] }: BayarivoHomeConceptProps) {
   const [liveProfile, setLiveProfile] = useState<LiveProfile | null>(null);
   const [profileStatus, setProfileStatus] = useState<"idle" | "loaded" | "error">("idle");
   const homeHref = userMode ? "/user" : "/";
@@ -204,11 +235,19 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, disp
     { label: "Lainnya", href: categoryHref, Icon: Grid2X2, tone: "bg-[#eef2f6] text-[#718197]" },
   ];
 
-  const activities = [
-    { title: "Pembelian Pulsa", subtitle: "Telkomsel 50.000", amount: "- Rp 50.000", time: "Hari ini, 10:24", Icon: Smartphone, tone: "bg-[#e7f5ff] text-[#1680cf]" },
-    { title: "Token Listrik", subtitle: "PLN 20.000", amount: "- Rp 20.000", time: "Kemarin, 18:41", Icon: Bolt, tone: "bg-[#e7faec] text-[#20aa63]" },
-    { title: "Top Up DANA", subtitle: "via Virtual Account", amount: "- Rp 100.000", time: "12 Apr 2025, 14:30", Icon: WalletCards, tone: "bg-[#f0eaff] text-[#694ce1]" },
-  ];
+  const activities = recentOrders.slice(0, 3).map((order) => {
+    const productName = order.produk_nama_snapshot || order.produk_sku_snapshot || "Transaksi";
+    const Icon = orderIcon(productName);
+    return {
+      key: order.invoice_id || String(order.id),
+      title: productName,
+      subtitle: order.dest || order.invoice_id,
+      amount: `- Rp ${rupiah(Number(order.harga_final || order.nominal || 0))}`,
+      time: formatOrderTime(order.dibuat_pada),
+      Icon,
+      tone: orderTone(productName),
+    };
+  });
 
   return (
     <main className="min-h-svh bg-[#eef7fb] text-[#052656]">
@@ -327,21 +366,35 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, disp
         <section className="rounded-[22px] border border-[#dfeaf4] bg-white p-4 shadow-[0_14px_30px_rgba(8,52,100,0.08)]">
           <SectionHeader title="Aktivitas Terakhir" href={transactionHref} />
           <div className="mt-3 divide-y divide-[#e6eef6] rounded-[17px] border border-[#e3edf6] bg-[#fbfdff] px-3">
-            {activities.map(({ Icon, ...item }) => (
-              <Link key={item.title} href={transactionHref} prefetch={false} className="grid grid-cols-[46px_1fr_auto] items-center gap-3 py-3">
-                <span className={`grid h-11 w-11 place-items-center rounded-full ${item.tone}`}>
-                  <Icon className="h-[22px] w-[22px]" strokeWidth={2.4} />
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-[14px] font-black text-[#062657]">{item.title}</span>
-                  <span className="block truncate text-[12px] font-semibold text-[#60789d]">{item.subtitle}</span>
-                </span>
-                <span className="text-right">
-                  <span className="block text-[13px] font-black text-[#062657]">{item.amount}</span>
-                  <span className="block text-[11px] font-semibold text-[#60789d]">{item.time}</span>
-                </span>
-              </Link>
-            ))}
+            {activities.length ? (
+              activities.map(({ Icon, ...item }) => (
+                <Link key={item.key} href={transactionHref} prefetch={false} className="grid grid-cols-[46px_1fr_auto] items-center gap-3 py-3">
+                  <span className={`grid h-11 w-11 place-items-center rounded-full ${item.tone}`}>
+                    <Icon className="h-[22px] w-[22px]" strokeWidth={2.4} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[14px] font-black text-[#062657]">{item.title}</span>
+                    <span className="block truncate text-[12px] font-semibold text-[#60789d]">{item.subtitle}</span>
+                  </span>
+                  <span className="text-right">
+                    <span className="block text-[13px] font-black text-[#062657]">{item.amount}</span>
+                    <span className="block text-[11px] font-semibold text-[#60789d]">{item.time}</span>
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <div className="grid min-h-[132px] place-items-center py-5 text-center">
+                <div>
+                  <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f5ff] text-[#0875be]">
+                    <ReceiptText className="h-6 w-6" strokeWidth={2.35} />
+                  </span>
+                  <p className="mt-3 text-[13px] font-black text-[#062657]">Belum ada aktivitas</p>
+                  <p className="mt-1 text-[11px] font-semibold text-[#60789d]">
+                    Transaksi pertamamu akan muncul di sini.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
