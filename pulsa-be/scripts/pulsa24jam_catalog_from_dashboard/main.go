@@ -2,12 +2,12 @@ package main
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -21,8 +21,6 @@ type productRow struct {
 	Price          int64
 	MaximumNominal string
 }
-
-var priceLinePattern = regexp.MustCompile(`^(?:\+\s*)?Rp\s*([0-9.]+)$`)
 
 func main() {
 	log.SetFlags(0)
@@ -38,13 +36,30 @@ func main() {
 		log.Fatalf("read %s: %v", inputPath, err)
 	}
 
-	products := parseDashboardProducts(lines)
+	products, err := parseDashboardProducts(lines)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if len(products) == 0 {
 		log.Fatal("no Pulsa24Jam products parsed")
 	}
 
 	if err := writeMigration(outputPath, products); err != nil {
 		log.Fatalf("write %s: %v", outputPath, err)
+	}
+	input, err := os.ReadFile(inputPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	report, err := json.MarshalIndent(struct {
+		SourceSHA256 string
+		Products     []productRow
+	}{fmt.Sprintf("%x", sha256.Sum256(input)), products}, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(outputPath+".json", report, 0644); err != nil {
+		log.Fatal(err)
 	}
 	fmt.Printf("Generated %s with %d Pulsa24Jam products\n", outputPath, len(products))
 }
@@ -68,208 +83,6 @@ func readLines(path string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
-func parseDashboardProducts(lines []string) []productRow {
-	var (
-		products     []productRow
-		headings     []string
-		lastCategory string
-	)
-
-	for i := 0; i < len(lines); i++ {
-		if !isTableHeader(lines, i) {
-			headings = appendUsefulHeading(headings, lines[i])
-			continue
-		}
-
-		category, brand, ok := currentCategoryBrand(headings, lastCategory)
-		if !ok {
-			headings = nil
-			continue
-		}
-		lastCategory = category
-		headings = nil
-		i += 3
-
-		for i < len(lines) {
-			if isUpcomingTableHeader(lines, i) {
-				break
-			}
-			if isTableHeader(lines, i) {
-				i--
-				break
-			}
-
-			row, next, ok := parseProductRow(lines, i, category, brand)
-			if !ok {
-				headings = appendUsefulHeading(headings, lines[i])
-				break
-			}
-			products = append(products, row)
-			i = next
-		}
-		i--
-	}
-
-	return dedupeProducts(products)
-}
-
-func appendUsefulHeading(headings []string, value string) []string {
-	value = strings.TrimSpace(value)
-	if value == "" || isNoiseHeading(value) {
-		return headings
-	}
-	headings = append(headings, value)
-	if len(headings) > 4 {
-		return headings[len(headings)-4:]
-	}
-	return headings
-}
-
-func isNoiseHeading(value string) bool {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "pulsa24jam", "dashboard", "produk h2hr", "request deposit", "pengaturan", "dokumentasi",
-		"history", "mutasi", "transaksi", "deposit", "logout", "profil aktif", "pulsa kilat",
-		"member h2hr", "role aktif di sesi ini", "total produk aktif", "produk dengan harga tetap",
-		"daftar produk", "gunakan sku internal ini untuk transaksi h2hr.", "cari sku / nama produk",
-		"semua kategori", "semua brand":
-		return true
-	default:
-		return false
-	}
-}
-
-func isTableHeader(lines []string, i int) bool {
-	return i+2 < len(lines) && lines[i] == "SKU" && lines[i+1] == "Keterangan" && lines[i+2] == "Harga"
-}
-
-func isUpcomingTableHeader(lines []string, i int) bool {
-	return i+3 < len(lines) && lines[i+1] == "SKU" && lines[i+2] == "Keterangan" && lines[i+3] == "Harga"
-}
-
-func currentCategoryBrand(headings []string, lastCategory string) (string, string, bool) {
-	if len(headings) == 0 {
-		return "", "", false
-	}
-	brand := headings[len(headings)-1]
-	category := brand
-	if len(headings) >= 2 {
-		category = headings[len(headings)-2]
-	} else if lastCategory != "" && !isStandaloneCategory(brand) {
-		category = lastCategory
-	}
-	return normalizeMasterName(category), normalizeMasterName(brand), true
-}
-
-func isStandaloneCategory(value string) bool {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "asuransi", "bank transfer", "bpjs", "e-money", "e-wallet", "game",
-		"internet pascabayar", "listrik", "masa aktif", "paket data",
-		"paket sms", "paket telepon", "pdam", "pln", "streaming",
-		"tv", "voucher", "voucher digital":
-		return true
-	default:
-		return false
-	}
-}
-
-func parseProductRow(lines []string, start int, category, brand string) (productRow, int, bool) {
-	if start+1 >= len(lines) {
-		return productRow{}, start, false
-	}
-	sku := normalizeSKU(lines[start])
-	name := strings.TrimSpace(lines[start+1])
-	if sku == "" || name == "" || isNoiseHeading(sku) || isNoiseHeading(name) {
-		return productRow{}, start, false
-	}
-
-	priceType := "FIXED"
-	var maxNominal string
-	var price int64
-	i := start + 2
-	for ; i < len(lines); i++ {
-		line := strings.TrimSpace(lines[i])
-		if strings.HasPrefix(strings.ToUpper(line), "OPEN_AMOUNT") {
-			priceType = "OPEN_AMOUNT"
-			maxNominal = parseMaximumNominal(line)
-		}
-		if amount, ok := parsePriceLine(line); ok {
-			price = amount
-			i++
-			break
-		}
-		if isUpcomingTableHeader(lines, i) || isTableHeader(lines, i) {
-			return productRow{}, start, false
-		}
-	}
-	if price == 0 && priceType != "OPEN_AMOUNT" {
-		return productRow{}, start, false
-	}
-
-	return productRow{
-		Category:       category,
-		Brand:          brand,
-		SKU:            sku,
-		Name:           name,
-		GroupName:      category,
-		PriceType:      priceType,
-		Price:          price,
-		MaximumNominal: maxNominal,
-	}, i, true
-}
-
-func normalizeSKU(value string) string {
-	value = strings.ToUpper(strings.TrimSpace(value))
-	value = strings.ReplaceAll(value, " ", "")
-	return value
-}
-
-func normalizeMasterName(value string) string {
-	value = strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
-	if strings.EqualFold(value, "shopee") {
-		return "ShopeePay"
-	}
-	return value
-}
-
-func parseMaximumNominal(value string) string {
-	upper := strings.ToUpper(value)
-	idx := strings.Index(upper, "MAKS")
-	if idx < 0 {
-		return ""
-	}
-	raw := regexp.MustCompile(`\d[\d.]*`).FindString(value[idx:])
-	if raw == "" {
-		return ""
-	}
-	return strings.ReplaceAll(raw, ".", "")
-}
-
-func parsePriceLine(value string) (int64, bool) {
-	match := priceLinePattern.FindStringSubmatch(strings.TrimSpace(value))
-	if len(match) != 2 {
-		return 0, false
-	}
-	amount, err := strconv.ParseInt(strings.ReplaceAll(match[1], ".", ""), 10, 64)
-	return amount, err == nil
-}
-
-func dedupeProducts(products []productRow) []productRow {
-	seen := make(map[string]int, len(products))
-	out := make([]productRow, 0, len(products))
-	for _, item := range products {
-		if item.SKU == "" {
-			continue
-		}
-		if idx, ok := seen[item.SKU]; ok {
-			out[idx] = item
-			continue
-		}
-		seen[item.SKU] = len(out)
-		out = append(out, item)
-	}
-	return out
-}
-
 func writeMigration(path string, products []productRow) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
@@ -281,7 +94,6 @@ func writeMigration(path string, products []productRow) error {
 	defer file.Close()
 
 	w := bufio.NewWriterSize(file, 1024*1024)
-	defer w.Flush()
 
 	fmt.Fprintln(w, "-- Generated from Pulsa24Jam H2HR dashboard export.")
 	fmt.Fprintln(w, "-- Re-run safe: refreshes the app catalog so active retail products are Pulsa24Jam H2HR only.")
@@ -314,7 +126,7 @@ func writeMigration(path string, products []productRow) error {
 	fmt.Fprintln(w, "CREATE TEMP TABLE p24_h2hr_seed (")
 	fmt.Fprintln(w, "  category_name TEXT NOT NULL,")
 	fmt.Fprintln(w, "  brand_name TEXT NOT NULL,")
-	fmt.Fprintln(w, "  sku TEXT NOT NULL,")
+	fmt.Fprintln(w, "  sku TEXT PRIMARY KEY,")
 	fmt.Fprintln(w, "  product_name TEXT NOT NULL,")
 	fmt.Fprintln(w, "  group_name TEXT NOT NULL,")
 	fmt.Fprintln(w, "  price_type TEXT NOT NULL,")
@@ -368,6 +180,7 @@ func writeMigration(path string, products []productRow) error {
 	fmt.Fprintln(w, "INSERT INTO public.provider (nama, aktif, dibuat_pada, diubah_pada)")
 	fmt.Fprintln(w, "VALUES ('pulsa24jam', true, now(), now())")
 	fmt.Fprintln(w, "ON CONFLICT (nama) DO UPDATE SET aktif = true, diubah_pada = now();")
+	fmt.Fprintln(w, "UPDATE public.provider SET aktif = false, diubah_pada = now() WHERE nama <> 'pulsa24jam' AND aktif;")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "UPDATE public.produk_app_pricing")
 	fmt.Fprintln(w, "SET aktif = false, updated_at = now(), diubah_pada = now()")
@@ -383,15 +196,15 @@ func writeMigration(path string, products []productRow) error {
 	fmt.Fprintln(w, "  AND sku NOT IN (SELECT sku FROM p24_h2hr_seed_unique);")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "INSERT INTO public.kategori (nama, aktif, dibuat_pada, diubah_pada)")
-	fmt.Fprintln(w, "SELECT DISTINCT ON (LOWER(TRIM(category_name))) category_name, true, now(), now()")
+	fmt.Fprintln(w, "SELECT DISTINCT category_name, true, now(), now()")
 	fmt.Fprintln(w, "FROM p24_h2hr_seed_unique")
-	fmt.Fprintln(w, "ORDER BY LOWER(TRIM(category_name)), category_name")
+	fmt.Fprintln(w, "ORDER BY category_name")
 	fmt.Fprintln(w, "ON CONFLICT (nama) DO UPDATE SET aktif = true, diubah_pada = now();")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "INSERT INTO public.brand (nama, aktif, dibuat_pada, diubah_pada)")
-	fmt.Fprintln(w, "SELECT DISTINCT ON (LOWER(TRIM(brand_name))) brand_name, true, now(), now()")
+	fmt.Fprintln(w, "SELECT DISTINCT brand_name, true, now(), now()")
 	fmt.Fprintln(w, "FROM p24_h2hr_seed_unique")
-	fmt.Fprintln(w, "ORDER BY LOWER(TRIM(brand_name)), brand_name")
+	fmt.Fprintln(w, "ORDER BY brand_name")
 	fmt.Fprintln(w, "ON CONFLICT (nama) DO UPDATE SET aktif = true, diubah_pada = now();")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "INSERT INTO public.kategori_fee_app")
@@ -400,7 +213,7 @@ func writeMigration(path string, products []productRow) error {
 	fmt.Fprintln(w, "FROM p24_h2hr_seed_unique seed")
 	fmt.Fprintln(w, "JOIN LATERAL (")
 	fmt.Fprintln(w, "  SELECT id FROM public.kategori")
-	fmt.Fprintln(w, "  WHERE LOWER(TRIM(nama)) = LOWER(TRIM(seed.category_name))")
+	fmt.Fprintln(w, "  WHERE nama = seed.category_name")
 	fmt.Fprintln(w, "  ORDER BY id LIMIT 1")
 	fmt.Fprintln(w, ") k ON true")
 	fmt.Fprintln(w, "ON CONFLICT (kategori_id) DO UPDATE SET aktif = true, updated_at = now();")
@@ -408,17 +221,17 @@ func writeMigration(path string, products []productRow) error {
 	fmt.Fprintln(w, "INSERT INTO public.produk")
 	fmt.Fprintln(w, "  (sku, nama, group_name, kategori_id, brand_id, tipe_harga, nominal, maksimal_nominal, jam_buka, jam_tutup, aktif, dibuat_pada, diubah_pada)")
 	fmt.Fprintln(w, "SELECT seed.sku, seed.product_name, seed.group_name, k.id, b.id, seed.price_type,")
-	fmt.Fprintln(w, "       CASE WHEN seed.price_type = 'FIXED' THEN seed.price ELSE NULL END,")
+	fmt.Fprintln(w, "       NULL,")
 	fmt.Fprintln(w, "       seed.maximum_nominal, '00:00', '23:59', true, now(), now()")
 	fmt.Fprintln(w, "FROM p24_h2hr_seed_unique seed")
 	fmt.Fprintln(w, "JOIN LATERAL (")
 	fmt.Fprintln(w, "  SELECT id FROM public.kategori")
-	fmt.Fprintln(w, "  WHERE LOWER(TRIM(nama)) = LOWER(TRIM(seed.category_name))")
+	fmt.Fprintln(w, "  WHERE nama = seed.category_name")
 	fmt.Fprintln(w, "  ORDER BY id LIMIT 1")
 	fmt.Fprintln(w, ") k ON true")
 	fmt.Fprintln(w, "JOIN LATERAL (")
 	fmt.Fprintln(w, "  SELECT id FROM public.brand")
-	fmt.Fprintln(w, "  WHERE LOWER(TRIM(nama)) = LOWER(TRIM(seed.brand_name))")
+	fmt.Fprintln(w, "  WHERE nama = seed.brand_name")
 	fmt.Fprintln(w, "  ORDER BY id LIMIT 1")
 	fmt.Fprintln(w, ") b ON true")
 	fmt.Fprintln(w, "ON CONFLICT (sku) DO UPDATE SET")
@@ -457,7 +270,7 @@ func writeMigration(path string, products []productRow) error {
 	fmt.Fprintln(w, "INSERT INTO public.produk_provider_map")
 	fmt.Fprintln(w, "  (produk_id, provider, kode_provider, mode, aktif, prioritas, minimal_nominal, maksimal_nominal, fee_rp, dibuat_pada, diubah_pada)")
 	fmt.Fprintln(w, "SELECT p.id, 'pulsa24jam', seed.sku, 'normal', true, 1,")
-	fmt.Fprintln(w, "       CASE WHEN seed.price_type = 'OPEN_AMOUNT' THEN 1 ELSE NULL END,")
+	fmt.Fprintln(w, "       NULL,")
 	fmt.Fprintln(w, "       seed.maximum_nominal, 0, now(), now()")
 	fmt.Fprintln(w, "FROM p24_h2hr_seed_unique seed")
 	fmt.Fprintln(w, "JOIN public.produk p ON p.sku = seed.sku")
@@ -470,8 +283,34 @@ func writeMigration(path string, products []productRow) error {
 	fmt.Fprintln(w, "  fee_rp = 0,")
 	fmt.Fprintln(w, "  diubah_pada = now();")
 	fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "UPDATE public.kategori SET aktif = false, diubah_pada = now() WHERE aktif AND nama NOT IN (SELECT category_name FROM p24_h2hr_seed);")
+	fmt.Fprintln(w, "UPDATE public.brand SET aktif = false, diubah_pada = now() WHERE aktif AND nama NOT IN (SELECT brand_name FROM p24_h2hr_seed);")
+	fmt.Fprintln(w, `DO $$ BEGIN
+  IF (SELECT count(*) FROM public.produk WHERE aktif) <> (SELECT count(*) FROM p24_h2hr_seed)
+    OR (SELECT count(*) FROM public.produk_provider_map WHERE aktif) <> (SELECT count(*) FROM p24_h2hr_seed)
+    OR EXISTS (
+      SELECT 1 FROM p24_h2hr_seed s
+      LEFT JOIN public.produk p ON p.sku = s.sku
+      LEFT JOIN public.kategori k ON k.id = p.kategori_id
+      LEFT JOIN public.brand b ON b.id = p.brand_id
+      LEFT JOIN public.produk_app_pricing a ON a.produk_id = p.id AND a.aktif
+      LEFT JOIN public.produk_provider_map m ON m.produk_id = p.id AND m.aktif
+      WHERE p.aktif IS DISTINCT FROM true OR p.nama IS DISTINCT FROM s.product_name
+        OR p.group_name IS DISTINCT FROM s.group_name
+        OR p.tipe_harga::text IS DISTINCT FROM s.price_type
+        OR k.nama IS DISTINCT FROM s.category_name OR b.nama IS DISTINCT FROM s.brand_name
+        OR a.provider IS DISTINCT FROM 'pulsa24jam' OR a.harga IS DISTINCT FROM s.price
+        OR a.harga_dasar IS DISTINCT FROM s.price
+        OR m.provider IS DISTINCT FROM 'pulsa24jam' OR m.kode_provider IS DISTINCT FROM s.sku
+        OR p.maksimal_nominal IS DISTINCT FROM s.maximum_nominal
+    ) THEN RAISE EXCEPTION 'Catalog does not match source; import rolled back';
+  END IF;
+END $$;`)
 	fmt.Fprintln(w, "COMMIT;")
-	return nil
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	return file.Close()
 }
 
 func sqlQuote(value string) string {

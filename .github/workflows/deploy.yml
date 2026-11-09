@@ -1,151 +1,215 @@
 name: Deploy
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: deploy-main
+  group: deploy-new-server
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Build and Deploy to Server
-    runs-on: ubuntu-24.04-arm
-    if: github.ref == 'refs/heads/main'
+  build:
+    name: Build verified AMD64 release
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    outputs:
+      commit: ${{ steps.revision.outputs.commit }}
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
 
+      - name: Record revision
+        id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: pulsa-be/go.mod
+          cache-dependency-path: pulsa-be/go.sum
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: pulsa-fe/package-lock.json
+
+      - name: Test activation helper
+        run: python3 -m unittest discover -s ops -p 'test_bayarivo_activate.py' -v
+
+      - name: Test and build backend
+        working-directory: pulsa-be
+        run: |
+          set -euo pipefail
+          go test ./...
+          mkdir -p ../deploy/backend
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o ../deploy/backend/bayarivo-api .
+
+      - name: Build frontend standalone
+        working-directory: pulsa-fe
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED: "false"
+          NEXT_PUBLIC_SITE_URL: https://bayarivo.com
+          NEXT_PUBLIC_API_BASE: ""
+          NEXTAUTH_URL: http://localhost:33104
+          API_BASE: http://127.0.0.1:8104
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run lint
+          npm run build
+          test -f .next/standalone/server.js
+          mkdir -p ../deploy/frontend/.next
+          cp -a .next/standalone/. ../deploy/frontend/
+          cp -a .next/static ../deploy/frontend/.next/static
+          cp -a public ../deploy/frontend/public
+
+      - name: Package release with revision and checksum
+        env:
+          DEPLOY_COMMIT: ${{ steps.revision.outputs.commit }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$DEPLOY_COMMIT" > deploy/frontend/DEPLOY_COMMIT
+          printf '%s\n' "$DEPLOY_COMMIT" > deploy/frontend/public/deploy-version.txt
+          tar -czf release.tar.gz -C deploy frontend backend
+          sha256sum release.tar.gz > release.tar.gz.sha256
+
+      - name: Store release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bayarivo-release
+          path: |
+            release.tar.gz
+            release.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  deploy:
+    name: Activate on new server
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     env:
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
       SERVER_PORT: ${{ secrets.SERVER_PORT }}
       SERVER_USER: ${{ secrets.SERVER_USER }}
-      SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
-      BACKEND_SOURCE_DIR: pulsa-be
-      FRONTEND_SOURCE_DIR: pulsa-fe
-      FRONTEND_RELEASE_DIR: bayarivo/frontend
-
+      DEPLOY_COMMIT: ${{ needs.build.outputs.commit }}
+      RELEASE_ID: ci-${{ needs.build.outputs.commit }}-${{ github.run_id }}-${{ github.run_attempt }}
+      DEPLOY_ROOT: /home/mitra-p24/hit/Bayarivo
     steps:
-      - name: Checkout
+      - name: Checkout deployment tools from same revision
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.commit }}
+          persist-credentials: false
 
-      - name: Validate deployment secrets
-        shell: bash
+      - name: Download release
+        uses: actions/download-artifact@v4
+        with:
+          name: bayarivo-release
+
+      - name: Reject stale revisions
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          required=(
-            SERVER_HOST
-            SERVER_PORT
-            SERVER_USER
-            SERVER_SSH_KEY
-          )
-          for name in "${required[@]}"; do
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
+          if [ "$latest" != "$DEPLOY_COMMIT" ]; then
+            echo "::error::main has changed. Deploy the latest successful CI revision."
+            exit 1
+          fi
+          sha256sum -c release.tar.gz.sha256
+
+      - name: Validate target and prepare pinned SSH connection
+        env:
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          for name in SERVER_HOST SERVER_PORT SERVER_USER SERVER_SSH_KEY; do
             if [ -z "${!name:-}" ]; then
-              echo "::error::$name is empty. Add it in GitHub repository secrets."
+              echo "::error::$name is missing in repository secrets."
               exit 1
             fi
           done
-          if [ ! -f "${BACKEND_SOURCE_DIR}/go.sum" ]; then
-            echo "::error::BACKEND_SOURCE_DIR must point to the backend folder in this repository, for example: pulsa-be"
+          if [ "$SERVER_HOST" != "103.31.39.97" ] || [ "$SERVER_PORT" != "22" ] || [ "$SERVER_USER" != "root" ]; then
+            echo "::error::Update SERVER_HOST=103.31.39.97, SERVER_PORT=22, SERVER_USER=root. Old server targets are rejected."
             exit 1
           fi
-          if [ ! -f "${FRONTEND_SOURCE_DIR}/package-lock.json" ]; then
-            echo "::error::FRONTEND_SOURCE_DIR must point to the frontend folder in this repository, for example: pulsa-fe"
-            exit 1
-          fi
+          install -d -m 700 "$RUNNER_TEMP/bayarivo-ssh"
+          printf '%s\n' "$SERVER_SSH_KEY" > "$RUNNER_TEMP/bayarivo-ssh/key"
+          chmod 600 "$RUNNER_TEMP/bayarivo-ssh/key"
+          cp ops/bayarivo_known_hosts "$RUNNER_TEMP/bayarivo-ssh/known_hosts"
+          ssh-keygen -y -P '' -f "$RUNNER_TEMP/bayarivo-ssh/key" > /dev/null
+          cat > "$RUNNER_TEMP/bayarivo-ssh/config" <<EOF
+          Host bayarivo-production
+            HostName $SERVER_HOST
+            User $SERVER_USER
+            Port $SERVER_PORT
+            IdentityFile $RUNNER_TEMP/bayarivo-ssh/key
+            UserKnownHostsFile $RUNNER_TEMP/bayarivo-ssh/known_hosts
+            StrictHostKeyChecking yes
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 15
+            ServerAliveInterval 15
+            ServerAliveCountMax 3
+          EOF
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24.2"
-          cache-dependency-path: pulsa-be/go.sum
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20.11.1"
-          cache: npm
-          cache-dependency-path: pulsa-fe/package-lock.json
-
-      - name: Build backend
-        shell: bash
+      - name: Upload isolated release
         run: |
           set -euo pipefail
-          mkdir -p deploy/backend
-          cd "$BACKEND_SOURCE_DIR"
-          go mod download
-          go test ./...
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o ../deploy/backend/bayarivo-api .
+          ssh -F "$RUNNER_TEMP/bayarivo-ssh/config" bayarivo-production \
+            "test -d '$DEPLOY_ROOT/shared' && mkdir -p '$DEPLOY_ROOT/incoming/$RELEASE_ID'"
+          scp -F "$RUNNER_TEMP/bayarivo-ssh/config" \
+            release.tar.gz release.tar.gz.sha256 ops/bayarivo-activate.py \
+            "bayarivo-production:$DEPLOY_ROOT/incoming/$RELEASE_ID/"
 
-      - name: Build frontend standalone
-        env:
-          NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED: "true"
-          NEXT_PUBLIC_SITE_URL: https://bayarivo.com
-          NEXTAUTH_URL: https://bayarivo.com
-          API_BASE: http://127.0.0.1:8104
-        shell: bash
+      - name: Activate with backup and rollback
         run: |
           set -euo pipefail
-          cd "$FRONTEND_SOURCE_DIR"
-          npm ci
-          npm run lint
-          npm run build
-          cd ..
-          rm -rf deploy/frontend
-          mkdir -p deploy/frontend/.next
-          cp -R "$FRONTEND_SOURCE_DIR/.next/standalone/." deploy/frontend/
-          cp -R "$FRONTEND_SOURCE_DIR/.next/static" deploy/frontend/.next/static
-          cp -R "$FRONTEND_SOURCE_DIR/public" deploy/frontend/public
-          test -f deploy/frontend/public/bayarivo-assets/00_full_screen/dashboard_full.png
-          printf '%s\n' "$GITHUB_SHA" > deploy/frontend/DEPLOY_COMMIT
-          printf '%s\n' "$GITHUB_SHA" > deploy/frontend/public/deploy-version.txt
+          ssh -F "$RUNNER_TEMP/bayarivo-ssh/config" bayarivo-production \
+            "set -eu
+             install -o root -g root -m 755 '$DEPLOY_ROOT/incoming/$RELEASE_ID/bayarivo-activate.py' /usr/local/sbin/bayarivo-activate
+             /usr/local/sbin/bayarivo-activate --check
+             /usr/local/sbin/bayarivo-activate '$RELEASE_ID'"
+          {
+            echo "### Deployment verified"
+            echo "- Server: 103.31.39.97"
+            echo "- Commit: $DEPLOY_COMMIT"
+            echo "- Release: $DEPLOY_ROOT/releases/$RELEASE_ID"
+            echo "- Local backend, catalog page and frontend commit marker checked."
+            echo "- Database and production configuration preserved; domain unchanged."
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Install SSH tools
-        shell: bash
+      - name: Report failed deployment
+        if: failure()
         run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y rsync
-          install -d -m 700 "$HOME/.ssh"
-          printf '%s\n' "$SERVER_SSH_KEY" > "$HOME/.ssh/bayarivo-deploy"
-          chmod 600 "$HOME/.ssh/bayarivo-deploy"
+          echo "Deployment failed. Inspect the failing step; the activator attempts rollback after an activation failure." >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload release files
-        shell: bash
-        run: |
-          set -euo pipefail
-          SSH_OPTS="-i $HOME/.ssh/bayarivo-deploy -o IdentitiesOnly=yes -p ${SERVER_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-          BACKEND_RELEASE_DIR="bayarivo/${BACKEND_SOURCE_DIR}"
-
-          ssh ${SSH_OPTS} "${SERVER_USER}@${SERVER_HOST}" \
-            "set -e;
-             mkdir -p \"\$HOME/${BACKEND_RELEASE_DIR}\";
-             mkdir -p \"\$HOME/${FRONTEND_RELEASE_DIR}\""
-
-          rsync -az --delete -e "ssh ${SSH_OPTS}" \
-            deploy/frontend/ "${SERVER_USER}@${SERVER_HOST}:~/${FRONTEND_RELEASE_DIR}/"
-
-          rsync -az -e "ssh ${SSH_OPTS}" \
-            deploy/backend/bayarivo-api "${SERVER_USER}@${SERVER_HOST}:~/${BACKEND_RELEASE_DIR}/bayarivo-api"
-
-      - name: Activate BayarIvo and verify services
-        shell: bash
-        run: |
-          set -euo pipefail
-          SSH_OPTS="-i $HOME/.ssh/bayarivo-deploy -o IdentitiesOnly=yes -p ${SERVER_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-          ssh ${SSH_OPTS} "${SERVER_USER}@${SERVER_HOST}" \
-            'sudo -n /usr/local/sbin/bayarivo-activate'
-
-      - name: Verify public release
-        shell: bash
-        run: |
-          set -euo pipefail
-          actual=$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "https://bayarivo.com/deploy-version.txt?commit=${GITHUB_SHA}")
-          test "$actual" = "$GITHUB_SHA"
-
-      - name: Remove temporary SSH key
+      - name: Remove temporary SSH material
         if: always()
-        run: rm -f "$HOME/.ssh/bayarivo-deploy"
+        run: |
+          rm -f "$RUNNER_TEMP/bayarivo-ssh/key" "$RUNNER_TEMP/bayarivo-ssh/config" "$RUNNER_TEMP/bayarivo-ssh/known_hosts"

@@ -9,6 +9,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -16,7 +19,8 @@ concurrency:
 jobs:
   backend:
     name: Backend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: pulsa-be
@@ -26,7 +30,7 @@ jobs:
       CORS_ORIGINS: http://localhost:3104,http://127.0.0.1:3104
       JWT_SECRET: test-jwt-secret
       ADMIN_TOKEN: test-admin-token
-      PULSA24JAM_BASE_URL: https://api.pulsa24jam.net/v2/trx
+      PULSA24JAM_BASE_URL: http://127.0.0.1:1
       PULSA24JAM_API_KEY: test-api-key
       PULSA24JAM_PIN: "000000"
       PULSA24JAM_PASSWORD: test-password
@@ -53,7 +57,8 @@ jobs:
 
   frontend:
     name: Frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: pulsa-fe
@@ -73,7 +78,7 @@ jobs:
       GOOGLE_CLIENT_ID: test-google-client-id
       GOOGLE_CLIENT_SECRET: test-google-client-secret
       NEXT_PUBLIC_GA_ID: ""
-      PULSA24JAM_BASE_URL: https://api.pulsa24jam.net/v2/trx
+      PULSA24JAM_BASE_URL: http://127.0.0.1:1
       PULSA24JAM_API_KEY: test-api-key
       PULSA24JAM_PIN: "000000"
       PULSA24JAM_CALLBACK_TOKEN: test-callback-token
@@ -84,7 +89,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "24"
           cache: npm
           cache-dependency-path: pulsa-fe/package-lock.json
 
@@ -96,3 +101,12 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  deployment-tools:
+    name: Deployment Safety Tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test release validation and rollback
+        run: python3 -m unittest discover -s ops -p 'test_bayarivo_activate.py' -v

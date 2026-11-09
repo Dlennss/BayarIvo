@@ -227,11 +227,11 @@ export function BayarivoHomeConcept({ userMode = false, isLoggedIn = false, disp
   }, [isLoggedIn]);
 
   const services: ServiceItem[] = [
-    { label: "Pulsa & Data", href: userMode ? "/user/pulsa-data" : "/pulsa-data", Icon: Smartphone, tone: "bg-[#fff0ed] text-[#f16651]" },
-    { label: "Paket Internet", href: userMode ? "/user/paket-data" : "/paket-data", Icon: Wifi, tone: "bg-[#e8f5ff] text-[#1677d2]" },
-    { label: "Token Listrik", href: userMode ? "/user/listrik/token" : "/listrik/token", Icon: Bolt, tone: "bg-[#fff5d8] text-[#e39a05]" },
-    { label: "E-Wallet", href: userMode ? "/user/ewallet" : "/ewallet", Icon: WalletCards, tone: "bg-[#efe9ff] text-[#6548d9]" },
-    { label: "Tagihan", href: userMode ? "/user/listrik/tagihan" : "/listrik/tagihan", Icon: FileText, tone: "bg-[#e6fbf4] text-[#1fad7a]" },
+    { label: "Pulsa", href: `${categoryHref}?q=Pulsa`, Icon: Smartphone, tone: "bg-[#fff0ed] text-[#f16651]" },
+    { label: "Paket Data", href: `${categoryHref}?q=Paket%20Data`, Icon: Wifi, tone: "bg-[#e8f5ff] text-[#1677d2]" },
+    { label: "PLN", href: `${categoryHref}?q=PLN`, Icon: Bolt, tone: "bg-[#fff5d8] text-[#e39a05]" },
+    { label: "E-Wallet", href: `${categoryHref}?q=E-Wallet`, Icon: WalletCards, tone: "bg-[#efe9ff] text-[#6548d9]" },
+    { label: "Tagihan", href: `${categoryHref}?q=Tagihan`, Icon: FileText, tone: "bg-[#e6fbf4] text-[#1fad7a]" },
     { label: "Lainnya", href: categoryHref, Icon: Grid2X2, tone: "bg-[#eef2f6] text-[#718197]" },
   ];
 

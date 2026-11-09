@@ -1,5 +1,3 @@
-import { GENERATED_BRAND_LOGO_SLUGS } from "@/lib/generated-brand-logo-slugs";
-
 export type BrandLogoMeta = {
   src: string;
   alt: string;
@@ -13,9 +11,9 @@ const BRAND_LOGOS: Record<string, BrandLogoMeta> = {
     sourcePage: "https://commons.wikimedia.org/wiki/File:Logo_Dana_Wiki.svg",
   },
   telkomsel: {
-    src: "/images/providers/logo_telkomsel.webp",
+    src: "/brand-logos/official/telkomsel.png",
     alt: "Logo Telkomsel",
-    sourcePage: "local:/public/images/providers/logo_telkomsel.webp",
+    sourcePage: "https://www.telkomsel.com/",
   },
   byu: {
     src: "/images/providers/logo_byu.webp",
@@ -33,9 +31,9 @@ const BRAND_LOGOS: Record<string, BrandLogoMeta> = {
     sourcePage: "local:/public/images/providers/logo_tri.webp",
   },
   gopay: {
-    src: "/brand-logos/gopay.svg",
+    src: "/brand-logos/official/gopay.png",
     alt: "Logo GoPay",
-    sourcePage: "https://commons.wikimedia.org/wiki/File:Gopay_logo.svg",
+    sourcePage: "https://gopay.co.id/",
   },
   indosat: {
     src: "/images/providers/logo_im3.webp",
@@ -83,14 +81,14 @@ const BRAND_LOGOS: Record<string, BrandLogoMeta> = {
     sourcePage: "https://commons.wikimedia.org/wiki/File:Shopee.svg",
   },
   shopeepay: {
-    src: "/brand-logos/shopee.svg",
+    src: "/brand-logos/official/shopeepay.svg",
     alt: "Logo ShopeePay",
-    sourcePage: "https://commons.wikimedia.org/wiki/File:Shopee.svg",
+    sourcePage: "https://shopeepay.co.id/",
   },
   "shopee pay": {
-    src: "/brand-logos/shopee.svg",
+    src: "/brand-logos/official/shopeepay.svg",
     alt: "Logo ShopeePay",
-    sourcePage: "https://commons.wikimedia.org/wiki/File:Shopee.svg",
+    sourcePage: "https://shopeepay.co.id/",
   },
   astrapay: {
     src: "/images/ewallet/logo_astrapay.svg",
@@ -389,25 +387,11 @@ function normalizeBrandName(name: string) {
     .replace(/\s+/g, " ");
 }
 
-function brandLogoSlug(name: string) {
-  return normalizeBrandName(name)
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 export function getBrandLogo(name: string): BrandLogoMeta | null {
   const key = normalizeBrandName(name);
   const withoutBankPrefix = key.replace(/^bank\s+/, "");
   const mapped = BRAND_LOGOS[key] ?? BRAND_LOGOS[withoutBankPrefix];
-  if (mapped) return mapped;
-
-  const candidates = [brandLogoSlug(key), brandLogoSlug(withoutBankPrefix)].filter(Boolean);
-  const generatedSlug = candidates.find((slug) => GENERATED_BRAND_LOGO_SLUGS.has(slug));
-  if (!generatedSlug) return null;
-
-  return {
-    src: `/yuscom-display-brand-logos-generated/${generatedSlug}.svg`,
-    alt: `Logo ${name}`,
-    sourcePage: "local:/public/yuscom-display-brand-logos-generated",
-  };
+  // These locally drawn banners are not official brand assets.
+  if (mapped?.src.match(/banner_(freefire_max|hago|zepeto|blood_strike)\.svg$/)) return null;
+  return mapped ?? null;
 }

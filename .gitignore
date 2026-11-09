@@ -36,6 +36,7 @@ pulsa-be/log.txt
 *.crt
 
 # Tools and editors
+ops/__pycache__/
 .vercel/
 .gocache/
 .DS_Store

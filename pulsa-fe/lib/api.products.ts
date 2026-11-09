@@ -49,26 +49,7 @@ function buildProductSortKey(item: UserProductItem) {
 function normalizeProductsForDisplay(items: UserProductItem[]) {
   if (items.length === 0) return items;
 
-  const category = String(items[0]?.kategori_nama || "").toUpperCase();
-  const byName = new Map<string, number>();
-  for (const item of items) {
-    const key = String(item.nama || "").trim();
-    byName.set(key, (byName.get(key) || 0) + 1);
-  }
-
-  const normalized = items.map((item) => {
-    if (!category.includes("GAME")) return item;
-
-    const rawName = String(item.nama || "").trim();
-    const duplicateCount = byName.get(rawName) || 0;
-    if (duplicateCount <= 1) return item;
-
-    const sku = String(item.sku || "").trim().toUpperCase();
-    const suffix = sku.startsWith("VG") ? "VIP" : sku.startsWith("G") ? "REG" : sku;
-    return { ...item, nama: `${rawName} ${suffix}` };
-  });
-
-  return normalized.sort((left, right) => {
+  return [...items].sort((left, right) => {
     const a = buildProductSortKey(left);
     const b = buildProductSortKey(right);
     return a[0] - b[0] || a[1] - b[1] || a[2].localeCompare(b[2]);

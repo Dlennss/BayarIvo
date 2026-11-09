@@ -29,7 +29,7 @@ func (s *AppOrderService) SetPulsa24JamClient(client *provider.Pulsa24JamAdapter
 
 func (s *AppOrderService) validatePulsa24JamProduct(ctx context.Context, productCode string) (*provider.Pulsa24JamProduct, error) {
 	if s.pulsa24JamClient == nil || !s.pulsa24JamClient.Configured() {
-		return nil, nil
+		return nil, fmt.Errorf("pembelian belum tersedia: koneksi Pulsa24Jam belum dikonfigurasi")
 	}
 	items, err := s.pulsa24JamClient.Products(ctx, productCode)
 	if err != nil {

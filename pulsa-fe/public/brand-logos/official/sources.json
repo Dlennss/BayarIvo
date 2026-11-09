@@ -1,0 +1,14 @@
+{
+  "shopeepay.svg": {
+    "page": "https://shopeepay.co.id/",
+    "asset": "https://shopeepay.co.id/assets/spp-logo-C03WIzdh.svg"
+  },
+  "gopay.png": {
+    "page": "https://gopay.co.id/",
+    "asset": "https://gopay-website.al-gp-id-p.cdn.gtflabs.io/assets/img/homepage/android-icon-192x192.png"
+  },
+  "telkomsel.png": {
+    "page": "https://www.telkomsel.com/",
+    "asset": "https://assets.telkomsel.com/public/telkomsel-rejuve-logo.png"
+  }
+}
