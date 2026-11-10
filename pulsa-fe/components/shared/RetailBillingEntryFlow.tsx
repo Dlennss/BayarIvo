@@ -21,6 +21,8 @@ type RetailBillingEntryFlowProps = {
   logoAlt?: string;
   minDestLength?: number;
   maxDestLength?: number;
+  checkProductId?: number;
+  allowCheckOnly?: boolean;
 };
 
 const TURNSTILE_ENABLED = /^(1|true|yes|on)$/i.test(process.env.NEXT_PUBLIC_TURNSTILE_ENABLED || "");
@@ -161,6 +163,8 @@ export function RetailBillingEntryFlow({
   logoAlt,
   minDestLength = 5,
   maxDestLength,
+  checkProductId,
+  allowCheckOnly = false,
 }: RetailBillingEntryFlowProps) {
   const [dest, setDest] = React.useState("");
   const [checking, setChecking] = React.useState(false);
@@ -178,7 +182,9 @@ export function RetailBillingEntryFlow({
   const isReady = cleanDest.length >= minDestLength && (typeof maxDestLength !== "number" || cleanDest.length <= maxDestLength);
   const guestNeedsTurnstile = !authToken && TURNSTILE_ENABLED && Boolean(TURNSTILE_SITE_KEY);
   const guestIdentity = React.useMemo(() => buildGuestIdentity(dest), [dest]);
-  const checkItem = React.useMemo(() => resolveCheckItem(items), [items]);
+  const checkItem = React.useMemo(() => checkProductId
+    ? items.find(item => item.id === checkProductId && isCheckProduct(item)) || null
+    : resolveCheckItem(items), [items, checkProductId]);
   const payItems = React.useMemo(() => items.filter((item) => isBillingPayProduct(item)), [items]);
   const payItem = React.useMemo(() => payItems[0] || null, [payItems]);
   const billingInquiry = checkOrder?.billing_inquiry || null;
@@ -358,7 +364,7 @@ export function RetailBillingEntryFlow({
       setError("Produk cek tagihan belum tersedia.");
       return;
     }
-    if (payItems.length === 0) {
+    if (payItems.length === 0 && !allowCheckOnly) {
       setError("Produk pembayaran tagihan belum tersedia.");
       return;
     }

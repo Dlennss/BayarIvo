@@ -36,7 +36,8 @@ const { catalogDisplayName } = require('../pulsa-fe/lib/catalog-display-name.ts'
       await page.getByRole('heading', { name: 'GOPAY', exact: true }).waitFor();
       assert.doesNotMatch(await page.locator('main header').innerText(), /pulsa24jam|h2hr?/i);
       assert.match(await page.locator('main header').innerText(), /Bayarivo/i);
-      assert.equal(await page.getByRole('button', { name: 'Beli', exact: true }).count(), 0);
+      assert.ok(await page.getByRole('button', { name: /^Pilih / }).count() > 0);
+      assert.equal(await page.getByText('Katalog tersedia. Pembelian belum aktif.', { exact: true }).count(), 0);
       const next = page.getByRole('button', { name: 'Halaman berikutnya', exact: true });
       await next.click();
       assert.match(await page.getByRole('navigation', { name: 'Halaman produk' }).innerText(), /2\s*\//);

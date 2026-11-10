@@ -7,6 +7,8 @@ import TurnstileWidget from "@/components/TurnstileWidget";
 import type { UserAppBillingInquiry, UserAppOrder, UserAppOrderPayment, UserProductItem } from "@/components/user/types";
 import { getRetailFeeForProduct } from "@/lib/retailRoles";
 import { saveGuestTransaction } from "@/lib/guest-transaction-storage";
+import { catalogDisplayName } from "@/lib/catalog-display-name";
+import { catalogNominalError, catalogPrice } from "@/lib/catalog-checkout";
 
 type UserCheckoutModalProps = {
   open: boolean;
@@ -17,6 +19,8 @@ type UserCheckoutModalProps = {
   destLabel?: string;
   destPlaceholder?: string;
   destMode?: "single" | "ml_id_server" | "alphanumeric";
+  destMaxLength?: number;
+  mobilePhoneRequired?: boolean;
   billingCheckRefId?: string;
   billingInquiry?: UserAppBillingInquiry | null;
   turnstileToken?: string;
@@ -138,13 +142,14 @@ function getSummaryPrimaryLabel(product: UserProductItem) {
   if (category.includes("E-MONEY") || category.includes("PAKET") || category.includes("GAME") || category.includes("TV")) {
     return "Produk";
   }
-  return "Nominal pulsa";
+  return "Nominal";
 }
 
 function shouldShowSummaryPrimaryRow(product: UserProductItem) {
+  if (product.tipe_harga === "FIXED" && !product.nominal) return false;
   const category = String(product.kategori_nama || "").toUpperCase();
   const upperName = String(product.nama || "").toUpperCase();
-  return !category.includes("E-MONEY") && !category.includes("PAKET DATA") && !category.includes("GAME") && !(category.includes("LISTRIK") && upperName.includes("TOKEN LISTRIK"));
+  return !category.includes("E-MONEY") && !category.includes("E-WALLET") && !category.includes("PAKET DATA") && !category.includes("GAME") && !(category.includes("LISTRIK") && upperName.includes("TOKEN LISTRIK"));
 }
 
 function getBillingDetailConfig(product: UserProductItem | null) {
@@ -158,6 +163,18 @@ function getBillingDetailConfig(product: UserProductItem | null) {
       adminLabel: "Admin PGN",
       showMeterType: false,
       showPeriod: false,
+      showMeterRange: false,
+    };
+  }
+  if (!category.includes("LISTRIK") && category !== "PLN" && !/^PLN[BC]$/i.test(product?.sku || "")) {
+    const brand = catalogDisplayName(product?.brand_nama || product?.kategori_nama || "");
+    return {
+      title: `Detail tagihan ${brand}`.trim(),
+      accountLabel: category.includes("BPJS") ? "Nomor peserta" : "ID pelanggan",
+      usageLabel: "Pemakaian",
+      adminLabel: "Admin tagihan",
+      showMeterType: false,
+      showPeriod: true,
       showMeterRange: false,
     };
   }
@@ -217,10 +234,10 @@ function isEwalletProduct(product: UserProductItem | null) {
 function friendlyCheckoutError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
   if (/produk (?:tidak aktif|tidak tersedia|retail wajib memakai provider Pulsa24Jam)|provider retail tidak valid/i.test(message)) {
-    return "Produk ini sudah tidak tersedia untuk pembelian. Muat ulang halaman agar daftar produk memakai katalog Pulsa24Jam terbaru.";
+    return "Produk ini sudah tidak tersedia untuk pembelian. Muat ulang katalog Bayarivo.";
   }
   if (/pulsa24jam client belum tersedia|koneksi katalog Pulsa24Jam belum dikonfigurasi|PULSA24JAM_.*belum|missing required env: PULSA24JAM/i.test(message)) {
-    return "Koneksi Pulsa24Jam belum aktif. Isi credential Pulsa24Jam di backend dulu agar transaksi bisa dikirim ke provider.";
+    return "Layanan transaksi sedang tidak tersedia. Silakan coba lagi nanti.";
   }
   if (/deposit qris|commands tidak didukung|internal error|\{\s*"?ok"?\s*:/i.test(message)) {
     return "Layanan pembayaran sedang tidak tersedia. Transaksi belum diproses dan saldo Anda tidak terpotong.";
@@ -280,6 +297,8 @@ export function UserCheckoutModal({
   destLabel = "Nomor Tujuan",
   destPlaceholder = "Masukkan nomor tujuan",
   destMode = "single",
+  destMaxLength = destMode === "alphanumeric" ? 32 : 13,
+  mobilePhoneRequired,
   billingCheckRefId,
   billingInquiry,
   turnstileToken,
@@ -292,6 +311,7 @@ export function UserCheckoutModal({
   const [nominal, setNominal] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [paymentUncertain, setPaymentUncertain] = React.useState(false);
   const [checkingStatus, setCheckingStatus] = React.useState(false);
   const [order, setOrder] = React.useState<UserAppOrder | null>(null);
   const [payment, setPayment] = React.useState<UserAppOrderPayment | null>(null);
@@ -305,6 +325,8 @@ export function UserCheckoutModal({
   const [, forceTick] = React.useReducer((v) => v + 1, 0);
   const refundRecoveryAttemptedRef = React.useRef(false);
   const checkoutQrisCompletingRef = React.useRef(false);
+  const submittingRef = React.useRef(false);
+  const paymentAttemptedRef = React.useRef(false);
   const effectiveAuthToken = authToken?.trim() || "";
   const activeTurnstileToken = turnstileToken || guestTurnstileToken;
   const guestNeedsTurnstile = !effectiveAuthToken && TURNSTILE_ENABLED && Boolean(TURNSTILE_SITE_KEY);
@@ -316,6 +338,8 @@ export function UserCheckoutModal({
     setNominal("");
     setError(null);
     setLoading(false);
+    setPaymentUncertain(false);
+    paymentAttemptedRef.current = false;
     setOrder(null);
     setPayment(null);
     setCheckoutQris(null);
@@ -413,36 +437,34 @@ export function UserCheckoutModal({
     : isFixed
     ? backendFixedSubtotal > 0
       ? backendFixedSubtotal
-      : nominalValue > 0
-        ? nominalValue + feeActive
-        : 0
+      : product ? catalogPrice(product, effectiveRole) : 0
     : nominalValue > 0
       ? nominalValue + baseCharge + feeActive
       : 0;
   const walletSaldo = Math.max(0, retailSaldo || 0);
+  const saldoLoading = Boolean(effectiveAuthToken) && retailSaldo === null;
   const estimatedWalletDebit = effectiveAuthToken ? Math.min(hargaSebelumFeeAdmin, walletSaldo) : 0;
   const estimatedQrisAmount = effectiveAuthToken ? Math.max(hargaSebelumFeeAdmin - estimatedWalletDebit, 0) : 0;
-  const needsTopup = Boolean(effectiveAuthToken) && estimatedQrisAmount > 0;
+  const needsTopup = Boolean(effectiveAuthToken) && !saldoLoading && estimatedQrisAmount > 0;
   const feeAdminQris = 0;
   const totalBayar = hargaSebelumFeeAdmin;
   const ewalletProduct = isEwalletProduct(product);
   const ewalletNominal = ewalletProduct ? Math.max(0, isFixed ? Number(product?.nominal || 0) : nominalValue) : 0;
   const ewalletServiceFee = ewalletProduct ? Math.max(0, totalBayar - ewalletNominal) : 0;
   const billingDisplayTotalTagihan = billingBillAmount > 0 ? billingBillAmount : billingTotalAmount;
-  const billingDisplayAdminFee = billingTotalAmount > 0
-    ? Math.max(totalBayar - billingDisplayTotalTagihan, 0)
-    : billingAdminAmount + baseCharge + feeActive + feeAdminQris;
+  const billingServiceFee = Math.max(totalBayar - billingTotalAmount, 0);
   const billingAccountNumber = (order?.dest || dest || initialDest || "").trim();
   const billingDetailConfig = getBillingDetailConfig(product);
   const guestIdentity = buildGuestIdentity(dest);
   const requiresMobilePhoneDest = React.useMemo(() => {
+    if (mobilePhoneRequired != null) return mobilePhoneRequired;
     const category = String(product?.kategori_nama || "").toUpperCase();
     return category.includes("PULSA")
       || category.includes("DATA")
       || category.includes("PAKET")
       || category.includes("E-MONEY")
       || category.includes("E-WALLET");
-  }, [product?.kategori_nama]);
+  }, [product?.kategori_nama, mobilePhoneRequired]);
 
   React.useEffect(() => {
     if (!open || !order || order.status !== "failed" || order.buyer_type !== "guest") return;
@@ -515,7 +537,7 @@ export function UserCheckoutModal({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const currentProduct = product;
-    if (!currentProduct) return;
+    if (!currentProduct || submittingRef.current || saldoLoading || paymentUncertain) return;
     setError(null);
 
     const cleanDest = dest.trim();
@@ -542,12 +564,15 @@ export function UserCheckoutModal({
       setError(`${destLabel} harus diawali 08 dan maksimal 13 digit.`);
       return;
     }
-    if (!isFixed && nominalValue <= 0) {
+    if (!isFixed && !isBillingPayment && nominalValue <= 0) {
       setError("Nominal wajib diisi.");
       return;
     }
+    const nominalError = catalogNominalError(currentProduct, nominalValue);
+    if (!isBillingPayment && nominalError) { setError(nominalError); return; }
     const finalDest = destMode === "ml_id_server" ? `${cleanDest}${cleanServer}` : cleanDest;
 
+    submittingRef.current = true;
     setLoading(true);
     try {
       await ensureFreshProductAvailable(currentProduct);
@@ -555,7 +580,7 @@ export function UserCheckoutModal({
       const orderPayload = {
         produk_id: currentProduct.id,
         dest: finalDest,
-        qty: isFixed ? 1 : nominalValue,
+        qty: isFixed || isBillingPayment ? 1 : nominalValue,
         ...(isBillingPayment && billingCheckRefId ? { source_check_ref_id: billingCheckRefId } : {}),
         ...(effectiveAuthToken
           ? {}
@@ -580,6 +605,10 @@ export function UserCheckoutModal({
       if (!orderRes.ok || !orderJson.ok || !orderJson.item) {
         throw new Error(orderJson.error || "Gagal membuat order.");
       }
+      // Never debit a different amount than the total the customer confirmed.
+      if (effectiveAuthToken && Number(orderJson.item.harga_final) !== totalBayar) {
+        throw new Error(`Harga terbaru adalah ${formatRupiah(Number(orderJson.item.harga_final))}. Pembayaran belum dilakukan. Muat ulang katalog sebelum melanjutkan.`);
+      }
 
       const guestHeaders: Record<string, string> = !effectiveAuthToken
         ? {
@@ -588,6 +617,8 @@ export function UserCheckoutModal({
           }
         : {};
 
+      setOrder(orderJson.item);
+      paymentAttemptedRef.current = true;
       const payRes = await fetch(`/api/app/orders/${encodeURIComponent(orderJson.item.invoice_id)}/pay`, {
         method: "POST",
         headers: {
@@ -638,8 +669,14 @@ export function UserCheckoutModal({
       if (err instanceof Error && /turnstile/i.test(err.message)) {
         setGuestTurnstileToken("");
       }
-      setError(friendlyCheckoutError(err));
+      if (effectiveAuthToken && paymentAttemptedRef.current) {
+        setPaymentUncertain(true);
+        setError("Pembayaran belum dapat dikonfirmasi. Periksa status transaksi ini sebelum mencoba membeli lagi.");
+      } else {
+        setError(friendlyCheckoutError(err));
+      }
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }
@@ -938,17 +975,18 @@ export function UserCheckoutModal({
 
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 px-4 py-6">
-      <div className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-[28px] bg-white p-5 shadow-[0_18px_46px_rgba(15,23,42,0.24)] md:w-97.5 md:max-w-none">
+    <div role="dialog" aria-modal="true" aria-label="Checkout" className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 px-4 py-6">
+      <div className="max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-5 shadow-[0_18px_46px_rgba(15,23,42,0.24)] md:w-97.5 md:max-w-none">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Checkout</p>
-            <h2 className="mt-1 text-lg font-bold text-slate-900">{product.nama}</h2>
+            <h2 className="mt-1 break-words text-base font-bold text-slate-900">{catalogDisplayName(product.nama)}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-100 text-slate-500"
+            disabled={loading}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-500 disabled:opacity-50"
             aria-label="Tutup modal"
           >
             <X className="h-4 w-4" />
@@ -1182,10 +1220,10 @@ export function UserCheckoutModal({
               ) : null}
               {isBillingPayment ? (
                 <div className="mt-2 flex items-center justify-between gap-3">
-                  <span>Admin fee</span>
-                  <span className="font-semibold text-slate-900">{formatRupiah(billingDisplayAdminFee)}</span>
+                  <span>Biaya layanan</span>
+                  <span className="font-semibold text-slate-900">{formatRupiah(billingServiceFee)}</span>
                 </div>
-              ) : ewalletProduct ? (
+              ) : ewalletProduct && (!isFixed || ewalletNominal > 0) ? (
                 <>
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <span>Nominal masuk ke {product.brand_nama || "e-wallet"}</span>
@@ -1231,6 +1269,7 @@ export function UserCheckoutModal({
                   {destMode === "ml_id_server" ? (
                     <div className="grid grid-cols-[minmax(0,1fr)_92px] gap-2">
                       <input
+                        aria-label={destLabel}
                         value={dest}
                         onChange={(e) => setDest(normalizeDestInput(e.target.value, 15))}
                         placeholder={destPlaceholder}
@@ -1240,6 +1279,7 @@ export function UserCheckoutModal({
                         className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-base text-slate-900 outline-none ring-0 transition focus:border-sky-300"
                       />
                       <input
+                        aria-label="Server"
                         value={destServer}
                         onChange={(e) => setDestServer(normalizeServerInput(e.target.value, 6))}
                         placeholder="Server"
@@ -1252,14 +1292,14 @@ export function UserCheckoutModal({
                   ) : (
                   <input
                     value={dest}
-                    onChange={(e) => setDest(destMode === "alphanumeric" ? normalizeAlphaNumericDestInput(e.target.value, 32) : normalizeDestInput(e.target.value))}
+                    onChange={(e) => setDest(destMode === "alphanumeric" ? normalizeAlphaNumericDestInput(e.target.value, destMaxLength) : normalizeDestInput(e.target.value, destMaxLength))}
                     placeholder={destPlaceholder}
                     type={destMode === "alphanumeric" ? "text" : "tel"}
                     inputMode={destMode === "alphanumeric" ? "text" : "numeric"}
                     autoCapitalize={destMode === "alphanumeric" ? "off" : undefined}
                     autoCorrect={destMode === "alphanumeric" ? "off" : undefined}
                     spellCheck={destMode === "alphanumeric" ? false : undefined}
-                    maxLength={destMode === "alphanumeric" ? 32 : 13}
+                    maxLength={destMaxLength}
                     className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-base text-slate-900 outline-none ring-0 transition focus:border-sky-300"
                   />
                   )}
@@ -1312,7 +1352,12 @@ export function UserCheckoutModal({
             {turnstileHint ? <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-700">{turnstileHint}</div> : null}
             {turnstileError ? <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">{turnstileError}</div> : null}
 
-            {needsTopup ? (
+            {paymentUncertain && order ? (
+              <button type="button" onClick={() => { onClose(); router.push(`/user/transaksi/${encodeURIComponent(order.invoice_id)}`); }}
+                className="inline-flex h-13 w-full items-center justify-center rounded-lg bg-[#126b9a] px-5 text-sm font-semibold text-white">
+                Periksa Transaksi
+              </button>
+            ) : needsTopup ? (
               <button
                 type="button"
                 onClick={() => {
@@ -1326,11 +1371,11 @@ export function UserCheckoutModal({
             ) : (
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || saldoLoading}
                 className="inline-flex h-13 w-full items-center justify-center rounded-2xl bg-[#163d52] px-11 text-xs font-black text-white shadow-[0_10px_20px_rgba(5,46,38,0.18)] transition group-hover:bg-[#126b9a]"
               >
                 {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
-                {loading ? "Memproses..." : "Bayar"}
+                {loading ? "Memproses..." : saldoLoading ? "Memuat saldo..." : "Bayar"}
               </button>
             )}
           </form>

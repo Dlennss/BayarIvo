@@ -2,13 +2,21 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import type { UserProductItem } from "@/components/user/types";
 import { catalogDisplayName } from "@/lib/catalog-display-name";
+import { catalogPrice, needsCatalogInquiry } from "@/lib/catalog-checkout";
+
+const CatalogProductCheckout = dynamic(() => import("./CatalogProductCheckout").then(module => module.CatalogProductCheckout));
 
 const rupiah = (value: number) => `Rp ${new Intl.NumberFormat("id-ID").format(value)}`;
 const pageSize = 30;
 
-export function H2HRCatalogProducts({ items }: { items: UserProductItem[] }) {
+export function H2HRCatalogProducts({ items, authToken, buyerRole }: { items: UserProductItem[]; authToken?: string; buyerRole?: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [selectedProduct, setSelectedProduct] = useState<UserProductItem | null>(null);
   const [query, setQuery] = useState("");
   const [priceType, setPriceType] = useState("ALL");
   const [page, setPage] = useState(0);
@@ -23,7 +31,6 @@ export function H2HRCatalogProducts({ items }: { items: UserProductItem[] }) {
 
   return (
     <section className="space-y-4">
-      <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Katalog tersedia. Pembelian belum aktif.</p>
       <div className="space-y-2">
         <label className="flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3">
           <Search aria-hidden="true" className="h-4 w-4 shrink-0 text-sky-700" />
@@ -42,17 +49,26 @@ export function H2HRCatalogProducts({ items }: { items: UserProductItem[] }) {
       </div>
       <ul className="divide-y divide-slate-200">
         {filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map(item => (
-          <li key={item.id} className="py-4 first:pt-0">
-            <p className="break-words text-sm font-bold leading-relaxed text-slate-900">{catalogDisplayName(item.nama)}</p>
-            <p className="mt-1 break-all font-mono text-[11px] text-slate-500">{item.sku}</p>
-            <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
+          <li key={item.id} className="py-1 first:pt-0">
+            <button type="button" disabled={!item.aktif} aria-label={`Pilih ${catalogDisplayName(item.nama)} (${item.sku})`}
+              onClick={() => {
+                if (!authToken) { router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`); return; }
+                setSelectedProduct(item);
+              }} className="w-full rounded-lg px-2 py-4 text-left transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600 disabled:cursor-not-allowed disabled:opacity-50">
+            <span className="flex items-start justify-between gap-3">
+              <span className="block break-words text-sm font-bold leading-relaxed text-slate-900">{catalogDisplayName(item.nama)}</span>
+              <ChevronRight aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" />
+            </span>
+            <span className="mt-1 block break-all font-mono text-[11px] text-slate-500">{item.sku}</span>
+            <span className="mt-3 flex flex-wrap items-end justify-between gap-2">
               <span className="text-[11px] text-slate-500">{item.group_name ? `${catalogDisplayName(item.group_name)} / ` : ""}{item.tipe_harga === "FIXED" ? "Harga tetap" : "Bebas nominal"}</span>
-              <div className="text-right">
-                <p className="text-[10px] text-slate-500">{item.tipe_harga === "OPEN_AMOUNT" ? "Biaya tambahan" : "Harga katalog"}</p>
-                <p className="text-sm font-bold text-sky-800">{item.tipe_harga === "OPEN_AMOUNT" ? "+ " : ""}{rupiah(item.harga_dasar_app)}</p>
-              </div>
-            </div>
-            {item.maksimal_nominal != null && <p className="mt-2 text-xs text-slate-500">Maksimum nominal {rupiah(item.maksimal_nominal)}</p>}
+              <span className="text-right">
+                <span className="block text-[10px] text-slate-500">{needsCatalogInquiry(item) ? "Cek tagihan dahulu" : item.tipe_harga === "OPEN_AMOUNT" ? "Biaya tambahan" : "Harga"}</span>
+                <span className="block text-sm font-bold text-sky-800">{item.tipe_harga === "OPEN_AMOUNT" ? "+ " : ""}{rupiah(catalogPrice(item, authToken ? buyerRole || "user" : "guest"))}</span>
+              </span>
+            </span>
+            {item.maksimal_nominal != null && <span className="mt-2 block text-xs text-slate-500">Maksimum nominal {rupiah(item.maksimal_nominal)}</span>}
+            </button>
           </li>
         ))}
       </ul>
@@ -62,6 +78,7 @@ export function H2HRCatalogProducts({ items }: { items: UserProductItem[] }) {
         <span className="text-xs text-slate-600">{currentPage + 1} / {pageCount}</span>
         <button type="button" aria-label="Halaman berikutnya" title="Halaman berikutnya" disabled={currentPage + 1 === pageCount} onClick={() => setPage(currentPage + 1)} className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white disabled:opacity-30"><ChevronRight className="h-4 w-4" /></button>
       </nav>}
+      {selectedProduct && authToken && <CatalogProductCheckout product={selectedProduct} items={items} authToken={authToken} buyerRole={buyerRole} onClose={() => setSelectedProduct(null)} />}
     </section>
   );
 }

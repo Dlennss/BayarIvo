@@ -34,7 +34,7 @@ export async function H2HRCatalogPage({ mode, categoryId, brandId, query = "" }:
         <h1 className="mt-1 break-words text-xl font-bold leading-tight">{catalogDisplayName(brand?.nama || category?.nama || "Semua layanan")}</h1>
       </div>
     </header>
-    {!category ? <ServiceDirectory mode={mode} categories={categories} initialQuery={query} /> : brand ? <H2HRCatalogProducts items={products} /> : <>
+    {!category ? <ServiceDirectory mode={mode} categories={categories} initialQuery={query} /> : brand ? <H2HRCatalogProducts items={products} authToken={session?.backendToken} buyerRole={session?.user?.role} /> : <>
       <p className="mb-4 text-xs text-slate-500">{brands.length} provider</p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {brands.map(item => {

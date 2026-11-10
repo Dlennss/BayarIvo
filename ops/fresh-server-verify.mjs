@@ -75,8 +75,8 @@ try {
     });
     assert.equal(catalogPage.status, 200);
     const html = await catalogPage.text();
-    assert.ok(html.includes('GOPAY') && html.includes('Pembelian belum aktif.'));
-    console.log('Authenticated H2HR catalog page verified; purchases remain disabled.');
+    assert.ok(html.includes('GOPAY') && html.includes('Pilih '));
+    console.log('Authenticated catalog page verified without submitting a purchase.');
   }
   const providers = await request(frontend, '/api/auth/providers');
   assert.ok(providers.credentials);
