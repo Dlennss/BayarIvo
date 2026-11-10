@@ -94,6 +94,9 @@ func (s *AppOrderFulfillmentService) DispatchPaidOrder(ctx context.Context, orde
 	if provider == providerpkg.Pulsa24JamProviderName {
 		providerRefID = pulsa24JamAppOrderRefID(order)
 	}
+	if providerRefID == "" {
+		return fmt.Errorf("invoice wajib tersedia sebelum dispatch P24")
+	}
 
 	reqPayload := map[string]any{
 		"provider": provider,
@@ -134,6 +137,21 @@ func (s *AppOrderFulfillmentService) DispatchPaidOrder(ctx context.Context, orde
 		}(),
 		"provider": provider,
 	})
+	// A mismatched/replayed response is not proof of success or failure.
+	// Preserve the attempt for reconciliation; do not refund or resend it.
+	if provider == providerpkg.Pulsa24JamProviderName && strings.TrimSpace(body) != "" {
+		if identityErr := validatePulsa24JamAppResponse(body, providerRefID, providerProductCode, providerQty, order); identityErr != nil {
+			if err := s.providerTrxRepo.UpdateResult(ctx, repository.AppOrderProviderTrxUpdateInput{
+				ID: row.ID, Status: "pending", KodeRespon: "RECONCILE", Pesan: identityErr.Error(), RawCallback: string(rawRespJSON),
+			}); err != nil {
+				return err
+			}
+			if err := s.orderRepo.UpdateStatusByID(ctx, order.ID, "processing_provider"); err != nil {
+				return err
+			}
+			return identityErr
+		}
+	}
 
 	if callErr != nil || hs != 200 || appOrderProviderLooksLikeSystemIssue(provider, body) {
 		msg := strings.TrimSpace(body)

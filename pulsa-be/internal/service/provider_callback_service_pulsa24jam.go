@@ -212,6 +212,9 @@ func (s *ProviderCallbackService) processPulsa24JamRetailWithdrawCallback(ctx co
 }
 
 func (s *ProviderCallbackService) processPulsa24JamAppCallback(ctx context.Context, data pulsa24JamCallbackData, row *repository.AppOrderProviderTrxRow) (int, map[string]any) {
+	if row.KodeRespon != nil && *row.KodeRespon == "RECONCILE" {
+		return 200, map[string]any{"ok": true, "refid": data.refid, "reconciliation_required": true}
+	}
 	order, err := s.appOrderRepo.GetByID(ctx, row.AppOrderID)
 	if err != nil || order == nil {
 		return 200, map[string]any{"ok": true, "refid": data.refid, "ignored": true}

@@ -1,7 +1,11 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
+	"strings"
 	"testing"
+	"time"
 
 	"pulsa2/internal/repository"
 )
@@ -106,8 +110,8 @@ func TestPulsa24JamAppOrderRefIDFitsH2HRLimit(t *testing.T) {
 		ID:        81,
 		InvoiceID: "INV-20260921170504-F95D2B50",
 	})
-	if got != "PKA29" {
-		t.Fatalf("refid = %q, want %q", got, "PKA29")
+	if !strings.HasPrefix(got, "BVA") {
+		t.Fatalf("unexpected refid = %q", got)
 	}
 	if len(got) > 20 {
 		t.Fatalf("refid length = %d, want <= 20", len(got))
@@ -119,7 +123,70 @@ func TestPulsa24JamAppOrderRefIDFallbackFitsH2HRLimit(t *testing.T) {
 	if len(got) > 20 {
 		t.Fatalf("refid length = %d, want <= 20: %s", len(got), got)
 	}
-	if got[:3] != "PKA" {
-		t.Fatalf("refid = %q, want PKA prefix", got)
+	if got[:3] != "BVA" {
+		t.Fatalf("refid = %q, want BVA prefix", got)
+	}
+}
+
+func TestPulsa24JamReferencesSurviveDatabaseReset(t *testing.T) {
+	a := repository.AppOrderRow{ID: 2, InvoiceID: "INV-20261007141200-12345678"}
+	b := repository.AppOrderRow{ID: 2, InvoiceID: "INV-20261110055852-CD48BFE0"}
+	if pulsa24JamAppOrderRefID(&a) == pulsa24JamAppOrderRefID(&b) {
+		t.Fatal("database ID reuse must not reuse provider reference")
+	}
+	ref := pulsa24JamAppOrderRefID(&b)
+	b.ID = 987
+	if ref != pulsa24JamAppOrderRefID(&b) {
+		t.Fatal("same invoice must retain reference on retry/restore")
+	}
+	for _, order := range []*repository.AppOrderRow{nil, {ID: 2}} {
+		if pulsa24JamAppOrderRefID(order) != "" {
+			t.Fatal("missing invoice must fail closed")
+		}
+	}
+}
+
+func TestPulsa24JamAppResponseIdentity(t *testing.T) {
+	now := time.Date(2026, 11, 10, 5, 58, 52, 0, time.UTC)
+	order := &repository.AppOrderRow{Dest: "081234567890", DibuatPada: &now}
+	for _, tc := range []struct {
+		name, field string
+		value       any
+	}{
+		{"wrong reference", "ref_id", "PKA2"}, {"wrong product", "kode_produk", "DANA"},
+		{"wrong destination", "tujuan", "089999999999"}, {"old amount", "qty", 100000},
+		{"old date", "dibuat_pada", "2026-10-07T14:12:00+07:00"}, {"missing quantity", "qty", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tx := map[string]any{"ref_id": "NEWREF", "kode_produk": "GOPAY", "tujuan": order.Dest, "qty": 20000, "dibuat_pada": now.Format(time.RFC3339)}
+			valid, _ := json.Marshal(map[string]any{"ok": true, "existing": true, "transaksi_member": tx})
+			if err := validatePulsa24JamAppResponse(string(valid), "NEWREF", "GOPAY", 20000, order); err != nil {
+				t.Fatal(err)
+			}
+			tx[tc.field] = tc.value
+			invalid, _ := json.Marshal(map[string]any{"ok": true, "existing": true, "transaksi_member": tx})
+			if err := validatePulsa24JamAppResponse(string(invalid), "NEWREF", "GOPAY", 20000, order); err == nil {
+				t.Fatal("mismatched response accepted")
+			}
+		})
+	}
+	for _, body := range []string{`{"ok":true,"refid":"NEWREF","status":1}`, `{"ok":true,"refid":"NEWREF","status":3}`} {
+		if err := validatePulsa24JamAppResponse(body, "NEWREF", "GOPAY", 20000, order); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, body := range []string{`{"ok":true,"existing":true}`, `{"refid":"OTHER"}`, `not JSON`} {
+		if err := validatePulsa24JamAppResponse(body, "NEWREF", "GOPAY", 20000, order); err == nil {
+			t.Fatal("unverified response accepted")
+		}
+	}
+}
+
+func TestPulsa24JamCallbackCannotFinalizeQuarantinedResponse(t *testing.T) {
+	rc := "RECONCILE"
+	svc := &ProviderCallbackService{}
+	status, result := svc.processPulsa24JamAppCallback(context.Background(), pulsa24JamCallbackData{refid: "NEWREF"}, &repository.AppOrderProviderTrxRow{KodeRespon: &rc})
+	if status != 200 || result["reconciliation_required"] != true {
+		t.Fatal("callback bypassed reconciliation hold")
 	}
 }

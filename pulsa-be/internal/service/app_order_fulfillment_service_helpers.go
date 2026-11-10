@@ -2,10 +2,14 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base32"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"pulsa2/internal/helper"
 	providerpkg "pulsa2/internal/provider"
@@ -139,33 +143,64 @@ func resolvePulsa24JamAppRequest(providerProductCode string, order *repository.A
 }
 
 func pulsa24JamAppOrderRefID(order *repository.AppOrderRow) string {
-	if order != nil && order.ID > 0 {
-		return "PKA" + strings.ToUpper(strconv.FormatInt(order.ID, 36))
+	if order == nil || strings.TrimSpace(order.InvoiceID) == "" {
+		return ""
 	}
+	// A fresh database can reuse numeric IDs while P24 retains old references.
+	sum := sha256.Sum256([]byte(strings.TrimSpace(order.InvoiceID)))
+	return "BVA" + base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(sum[:])[:17]
+}
 
-	invoice := ""
-	if order != nil {
-		invoice = order.InvoiceID
+func validatePulsa24JamAppResponse(body, refID, product string, qty int64, order *repository.AppOrderRow) error {
+	var response struct {
+		Existing    bool   `json:"existing"`
+		RefID       string `json:"refid"`
+		LegacyRefID string `json:"ref_id"`
+		Transaction *struct {
+			RefID     string      `json:"ref_id"`
+			Product   string      `json:"kode_produk"`
+			Dest      string      `json:"tujuan"`
+			Qty       json.Number `json:"qty"`
+			CreatedAt string      `json:"dibuat_pada"`
+		} `json:"transaksi_member"`
 	}
-	invoice = strings.Map(func(r rune) rune {
-		switch {
-		case r >= '0' && r <= '9':
-			return r
-		case r >= 'A' && r <= 'Z':
-			return r
-		case r >= 'a' && r <= 'z':
-			return r - ('a' - 'A')
-		default:
-			return -1
+	if err := json.Unmarshal([]byte(body), &response); err != nil {
+		return fmt.Errorf("respons P24 tidak dapat diverifikasi")
+	}
+	for _, returnedRef := range []string{response.RefID, response.LegacyRefID} {
+		if returnedRef != "" && returnedRef != refID {
+			return fmt.Errorf("referensi respons P24 tidak cocok")
 		}
-	}, invoice)
-	if invoice == "" {
-		return "PKA"
 	}
-	if len(invoice) > 17 {
-		invoice = invoice[len(invoice)-17:]
+	tx := response.Transaction
+	if response.Existing && (tx == nil || tx.RefID == "" || tx.Product == "" || tx.Dest == "" || tx.Qty == "") {
+		return fmt.Errorf("identitas transaksi lama P24 tidak lengkap")
 	}
-	return "PKA" + invoice
+	if tx == nil {
+		return nil
+	}
+	if tx.RefID != "" && tx.RefID != refID {
+		return fmt.Errorf("referensi transaksi P24 tidak cocok")
+	}
+	if tx.Product != "" && !strings.EqualFold(tx.Product, product) {
+		return fmt.Errorf("produk transaksi P24 tidak cocok")
+	}
+	if tx.Dest != "" && (order == nil || tx.Dest != order.Dest) {
+		return fmt.Errorf("tujuan transaksi P24 tidak cocok")
+	}
+	if tx.Qty != "" {
+		returnedQty, err := tx.Qty.Int64()
+		if err != nil || returnedQty != qty {
+			return fmt.Errorf("nominal/jumlah transaksi P24 tidak cocok")
+		}
+	}
+	if tx.CreatedAt != "" && order != nil && order.DibuatPada != nil {
+		created, err := time.Parse(time.RFC3339Nano, tx.CreatedAt)
+		if err != nil || created.Before(order.DibuatPada.Add(-5*time.Minute)) {
+			return fmt.Errorf("waktu transaksi P24 mendahului invoice")
+		}
+	}
+	return nil
 }
 
 func appOrderProviderLooksLikeAccepted(provider, body string) bool {
