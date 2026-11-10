@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getAppServerSession } from "@/lib/server-auth";
 import { getCategories, getBrandsByKategori, getProductsByBrand } from "@/lib/api.products";
 import { getBrandLogo } from "@/lib/brand-logos";
+import { catalogDisplayName } from "@/lib/catalog-display-name";
 import type { UserCategoryItem } from "@/components/user/types";
 import { UserBottomNav } from "@/components/user/UserBottomNav";
 import { GuestBottomNav } from "@/components/guest/GuestBottomNav";
@@ -29,8 +30,8 @@ export async function H2HRCatalogPage({ mode, categoryId, brandId, query = "" }:
     <header className="mb-5 flex items-center gap-3">
       <Link href={backHref} aria-label="Kembali" title="Kembali" className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white"><ArrowLeft className="h-5 w-5" /></Link>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase text-sky-700">Pulsa24Jam H2HR{brand ? ` / ${category?.nama}` : ""}</p>
-        <h1 className="mt-1 break-words text-xl font-bold leading-tight">{brand?.nama || category?.nama || "Semua layanan"}</h1>
+        <p className="text-[10px] font-semibold uppercase text-sky-700">Bayarivo{brand && category ? ` / ${catalogDisplayName(category.nama)}` : ""}</p>
+        <h1 className="mt-1 break-words text-xl font-bold leading-tight">{catalogDisplayName(brand?.nama || category?.nama || "Semua layanan")}</h1>
       </div>
     </header>
     {!category ? <ServiceDirectory mode={mode} categories={categories} initialQuery={query} /> : brand ? <H2HRCatalogProducts items={products} /> : <>
@@ -42,7 +43,7 @@ export async function H2HRCatalogPage({ mode, categoryId, brandId, query = "" }:
             <span className="grid h-14 w-20 place-items-center">
               {logo ? <Image src={logo.src} alt={logo.alt} width={80} height={56} className="h-14 w-20 object-contain" /> : <Building2 aria-hidden="true" className="h-7 w-7 text-slate-400" />}
             </span>
-            <span className="break-words text-xs font-semibold leading-relaxed">{item.nama}</span>
+            <span className="break-words text-xs font-semibold leading-relaxed">{catalogDisplayName(item.nama)}</span>
           </Link>;
         })}
       </div>

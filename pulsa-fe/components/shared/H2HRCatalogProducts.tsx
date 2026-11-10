@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import type { UserProductItem } from "@/components/user/types";
+import { catalogDisplayName } from "@/lib/catalog-display-name";
 
 const rupiah = (value: number) => `Rp ${new Intl.NumberFormat("id-ID").format(value)}`;
 const pageSize = 30;
@@ -15,7 +16,7 @@ export function H2HRCatalogProducts({ items }: { items: UserProductItem[] }) {
     const needle = query.trim().toLocaleLowerCase("id-ID");
     return items.filter(item =>
       (priceType === "ALL" || item.tipe_harga === priceType) &&
-      `${item.sku} ${item.nama}`.toLocaleLowerCase("id-ID").includes(needle));
+      `${item.sku} ${item.nama} ${catalogDisplayName(item.nama)}`.toLocaleLowerCase("id-ID").includes(needle));
   }, [items, query, priceType]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount - 1);
@@ -42,10 +43,10 @@ export function H2HRCatalogProducts({ items }: { items: UserProductItem[] }) {
       <ul className="divide-y divide-slate-200">
         {filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map(item => (
           <li key={item.id} className="py-4 first:pt-0">
-            <p className="break-words text-sm font-bold leading-relaxed text-slate-900">{item.nama}</p>
+            <p className="break-words text-sm font-bold leading-relaxed text-slate-900">{catalogDisplayName(item.nama)}</p>
             <p className="mt-1 break-all font-mono text-[11px] text-slate-500">{item.sku}</p>
             <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
-              <span className="text-[11px] text-slate-500">{item.group_name} / {item.tipe_harga === "FIXED" ? "Harga tetap" : "Bebas nominal"}</span>
+              <span className="text-[11px] text-slate-500">{item.group_name ? `${catalogDisplayName(item.group_name)} / ` : ""}{item.tipe_harga === "FIXED" ? "Harga tetap" : "Bebas nominal"}</span>
               <div className="text-right">
                 <p className="text-[10px] text-slate-500">{item.tipe_harga === "OPEN_AMOUNT" ? "Biaya tambahan" : "Harga katalog"}</p>
                 <p className="text-sm font-bold text-sky-800">{item.tipe_harga === "OPEN_AMOUNT" ? "+ " : ""}{rupiah(item.harga_dasar_app)}</p>
